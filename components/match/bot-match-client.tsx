@@ -8,6 +8,8 @@ import { GameTimer } from './game-timer'
 import { ProblemDisplay } from './problem-display'
 import { ScoreBar } from './score-bar'
 import { BotMatchResults } from './bot-match-results'
+import { Flame } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 type MatchPhase = 'countdown' | 'playing' | 'finished'
 
@@ -29,7 +31,8 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
   const [finished, setFinished] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [botName, setBotName] = useState('Axiom Bot 1')
-  const [botElo, setBotElo] = useState(800)
+  const [botElo, setBotElo] = useState(userElo)
+  const [streak, setStreak] = useState(0)
 
   const seedRef = useRef(crypto.randomUUID())
   const problemsRef = useRef<MathProblem[]>([])
@@ -71,9 +74,74 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
       }
     }
     
-    // Bot ELO starts at 800 (matches countdown display)
-    setBotElo(800)
+    // Bot ELO starts at user ELO (matches countdown display)
+    setBotElo(userElo)
+
+    // Fetch streak
+    async function fetchStreak() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('completed_at')
+        .eq('status', 'completed')
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .not('completed_at', 'is', null)
+      
+      if (matches) {
+        const matchDates = matches.map(m => m.completed_at).filter(Boolean) as string[]
+        setStreak(calculateStreak(matchDates))
+      }
+    }
+    
+    fetchStreak()
   }, [mode, userElo])
+
+  function calculateStreak(matchDates: string[]): number {
+    if (matchDates.length === 0) return 0
+    
+    const uniqueDates = new Set<string>()
+    matchDates.forEach(dateStr => {
+      const date = new Date(dateStr)
+      date.setHours(0, 0, 0, 0)
+      uniqueDates.add(date.toISOString())
+    })
+    
+    const sortedDates = Array.from(uniqueDates)
+      .map(d => new Date(d))
+      .sort((a, b) => b.getTime() - a.getTime())
+    
+    if (sortedDates.length === 0) return 0
+    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    
+    const mostRecent = sortedDates[0]
+    mostRecent.setHours(0, 0, 0, 0)
+    
+    if (mostRecent.getTime() !== today.getTime() && mostRecent.getTime() !== yesterday.getTime()) {
+      return 0
+    }
+    
+    let streak = 0
+    let checkDate = new Date(mostRecent)
+    
+    for (const matchDate of sortedDates) {
+      matchDate.setHours(0, 0, 0, 0)
+      if (matchDate.getTime() === checkDate.getTime()) {
+        streak++
+        checkDate.setDate(checkDate.getDate() - 1)
+      } else if (matchDate.getTime() < checkDate.getTime()) {
+        break
+      }
+    }
+    
+    return streak
+  }
 
   const finishGame = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -153,8 +221,8 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
       : timeSinceLastChange > 30000 && Math.random() < 0.15 // Random changes after 2
     
     if (shouldChange) {
-      const roundedUserElo = Math.round(userElo / 100) * 100
-      setBotElo(roundedUserElo)
+      // Keep bot ELO at user ELO (no rounding)
+      setBotElo(userElo)
       lastEloChangeRef.current = currentTime
       eloChangeCountRef.current += 1
     }
@@ -165,7 +233,7 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
     const eloDiff = botElo - userElo
     // Base accuracy scales with ELO, but for 800 ELO, keep it low to get 8-12 correct
     let baseAccuracy: number
-    if (botElo === 800) {
+    if (botElo <= 800) {
       // For 800 ELO: 20-30% accuracy depending on difficulty to get 8-12 correct
       baseAccuracy = problem.difficulty <= 2 ? 0.3 : problem.difficulty <= 4 ? 0.25 : 0.2
     } else {
@@ -300,9 +368,23 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
       <div className="mb-8 flex items-center justify-between">
         <ScoreBar name="You" score={myScore} align="left" isMe />
         <GameTimer timeRemaining={timeRemaining} />
-        <div className="flex flex-col items-end">
-          <ScoreBar name={botName} score={botScore} align="right" />
-          <span className="mt-1 font-mono text-xs text-muted-foreground">{botElo}</span>
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col items-end">
+            <ScoreBar name={botName} score={botScore} align="right" />
+            <span className="mt-1 font-mono text-xs text-muted-foreground">{botElo}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {streak > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Flame className="h-5 w-5 text-orange-500" />
+                <span className="font-mono text-sm font-medium text-foreground">{streak}</span>
+              </div>
+            )}
+            <div className="flex flex-col items-end">
+              <span className="text-xs text-muted-foreground">ELO</span>
+              <span className="font-mono text-sm font-medium text-foreground">{userElo}</span>
+            </div>
+          </div>
         </div>
       </div>
 

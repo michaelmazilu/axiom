@@ -13,7 +13,7 @@ interface PerformanceData {
   winRate: number
   averageScore: number
   accuracyTrend: { value: number }[]
-  speedTrend: { value: number }[]
+  eloTrend: { value: number }[]
 }
 
 interface PerformanceAnalyticsProps {
@@ -46,7 +46,7 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
           winRate: 0,
           averageScore: 0,
           accuracyTrend: generateTrendData(0, 100),
-          speedTrend: generateTrendData(0, 100),
+          eloTrend: generateTrendData(1000, 1500),
         })
         setLoading(false)
         return
@@ -75,13 +75,39 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
       const averageScore =
         userMatches.reduce((sum, m) => sum + m.score, 0) / totalAttempts
 
-      // Generate trend data (simulated based on recent matches)
-      // In a real app, you'd track this over time
+      // Fetch ELO history from matches
+      const { data: eloMatches } = await supabase
+        .from('matches')
+        .select('player1_id, player2_id, player1_elo_after, player2_elo_after, completed_at')
+        .eq('status', 'completed')
+        .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: true })
+
+      // Generate trend data
       const accuracyTrend = generateTrendData(
         Math.max(0, highestAccuracy - 20),
         highestAccuracy
       )
-      const speedTrend = generateTrendData(60, 100) // Simulated speed trend
+      
+      // Generate ELO trend from actual match data
+      let eloTrend: { value: number }[]
+      if (eloMatches && eloMatches.length > 0) {
+        const eloValues = eloMatches.map(match => {
+          const isPlayer1 = match.player1_id === userId
+          return isPlayer1 ? match.player1_elo_after : match.player2_elo_after
+        }).filter((elo): elo is number => elo !== null && elo !== undefined)
+        
+        if (eloValues.length > 0) {
+          const minElo = Math.min(...eloValues)
+          const maxElo = Math.max(...eloValues)
+          eloTrend = generateTrendData(minElo, maxElo)
+        } else {
+          eloTrend = generateTrendData(1000, 1500)
+        }
+      } else {
+        eloTrend = generateTrendData(1000, 1500)
+      }
 
       setData({
         highestAccuracy: Math.round(highestAccuracy),
@@ -89,7 +115,7 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
         winRate: Math.round(winRate),
         averageScore: Math.round(averageScore),
         accuracyTrend,
-        speedTrend,
+        eloTrend,
       })
       setLoading(false)
     }
@@ -272,9 +298,10 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                     <Area
                       type="linear"
                       dataKey="value"
-                      stroke="none"
+                      stroke={`url(#accuracyGradient-${userId}-${variant})`}
+                      strokeWidth={2}
                       fill={`url(#accuracyGradient-${userId}-${variant})`}
-                      fillOpacity={1}
+                      fillOpacity={0.3}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -282,28 +309,28 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
             </div>
           </div>
 
-          {/* Speed Trend */}
+          {/* ELO Trend */}
           <div className="space-y-2">
             <div className={cn(
               'text-xs font-medium',
               isSidebar ? 'text-sidebar-foreground' : 'text-foreground'
             )}>
-              Speed trend
+              ELO trend
             </div>
             <div className="h-20 w-full">
               <ChartContainer
                 config={{
-                  speed: {
-                    label: 'Speed',
+                  elo: {
+                    label: 'ELO',
                     color: 'hsl(var(--chart-2))',
                   },
                 }}
                 className="h-full w-full"
               >
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.speedTrend} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                  <AreaChart data={data.eloTrend} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <defs>
-                      <linearGradient id={`speedGradient-${userId}-${variant}`} x1="0" y1="1" x2="0" y2="0">
+                      <linearGradient id={`eloGradient-${userId}-${variant}`} x1="0" y1="1" x2="0" y2="0">
                         <stop
                           offset="0%"
                           stopColor="rgb(147, 197, 253)"
@@ -324,9 +351,10 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                     <Area
                       type="linear"
                       dataKey="value"
-                      stroke="none"
-                      fill={`url(#speedGradient-${userId}-${variant})`}
-                      fillOpacity={1}
+                      stroke={`url(#eloGradient-${userId}-${variant})`}
+                      strokeWidth={2}
+                      fill={`url(#eloGradient-${userId}-${variant})`}
+                      fillOpacity={0.3}
                     />
                   </AreaChart>
                 </ResponsiveContainer>

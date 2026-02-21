@@ -1,8 +1,8 @@
 /**
  * Elo rating calculation.
- * K-factor of 32 for meaningful rating changes per match.
+ * K-factor of 16 for smaller rating changes per match (1 point instead of 2).
  */
-const K = 32
+const K = 16
 
 /** Calculate the expected score for player A against player B */
 function expectedScore(ratingA: number, ratingB: number): number {

@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Gamepad2, Trophy, User, LogOut, LogIn, UserPlus, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { PerformanceAnalytics } from '@/components/sidebar/performance-analytics'
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
