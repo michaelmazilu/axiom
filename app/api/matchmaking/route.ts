@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateMatchSeed } from '@/lib/game/seeded-random'
-
-const VALID_MODES = ['combinatorics', 'discrete', 'conditional', 'all']
+import { GAME_MODES } from '@/lib/game/types'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -15,7 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const mode = VALID_MODES.includes(body.mode) ? body.mode : 'all'
+  const mode = GAME_MODES.includes(body.mode) ? body.mode : 'all'
 
   const { data: profile } = await supabase
     .from('profiles')

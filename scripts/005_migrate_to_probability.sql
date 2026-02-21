@@ -24,7 +24,6 @@ UPDATE public.matches SET mode = 'probability' WHERE mode != 'probability';
 
 -- Update matchmaking queue mode constraint
 ALTER TABLE public.matchmaking_queue DROP CONSTRAINT IF EXISTS matchmaking_queue_mode_check;
-ALTER TABLE public.matchmaking_queue ADD CONSTRAINT matchmaking_queue_mode_check CHECK (mode IN ('probability'));
 
 -- Clear old queue entries
 DELETE FROM public.matchmaking_queue WHERE mode != 'probability';

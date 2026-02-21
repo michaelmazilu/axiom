@@ -1,12 +1,11 @@
 import { BotMatchClient } from '@/components/match/bot-match-client'
 import { createClient } from '@/lib/supabase/server'
 import type { GameMode } from '@/lib/game/math-generator'
+import { GAME_MODES } from '@/lib/game/types'
 
 export const metadata = {
   title: 'Practice vs Bot',
 }
-
-const VALID_MODES: GameMode[] = ['combinatorics', 'discrete', 'conditional', 'all']
 
 export default async function BotMatchPage({
   searchParams,
@@ -14,7 +13,7 @@ export default async function BotMatchPage({
   searchParams: Promise<{ mode?: string }>
 }) {
   const { mode } = await searchParams
-  const gameMode: GameMode = VALID_MODES.includes(mode as GameMode)
+  const gameMode: GameMode = GAME_MODES.includes(mode as GameMode)
     ? (mode as GameMode)
     : 'all'
 
