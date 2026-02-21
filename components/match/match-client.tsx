@@ -128,9 +128,10 @@ export function MatchClient({
       payload: { type: 'game_over', result: matchResult } satisfies GameEvent,
     })
 
-    try {
-      const supabase = createClient()
+    const supabase = createClient()
 
+    // Update match row (independent — don't let this block the profile update)
+    try {
       await supabase
         .from('matches')
         .update({
@@ -143,16 +144,45 @@ export function MatchClient({
           completed_at: new Date().toISOString(),
         })
         .eq('id', matchId)
-
-      if (!eloUpdatedRef.current) {
-        eloUpdatedRef.current = true
-        await supabase
-          .from('profiles')
-          .update({ elo_probability: myNewElo })
-          .eq('id', currentUserId)
-      }
     } catch {
-      // Match continues even if DB update fails
+      // non-blocking
+    }
+
+    // Update own profile: ELO + win/loss/draw counters
+    if (!eloUpdatedRef.current) {
+      eloUpdatedRef.current = true
+      try {
+        const isWin = winnerId === currentUserId
+        const isLoss = winnerId !== null && winnerId !== currentUserId
+
+        const { data: cur } = await supabase
+          .from('profiles')
+          .select('total_wins, total_losses, total_draws')
+          .eq('id', currentUserId)
+          .single()
+
+        const profileUpdate = {
+          elo_probability: myNewElo,
+          total_wins: (cur?.total_wins ?? 0) + (isWin ? 1 : 0),
+          total_losses: (cur?.total_losses ?? 0) + (isLoss ? 1 : 0),
+          total_draws: (cur?.total_draws ?? 0) + (!isWin && !isLoss ? 1 : 0),
+        }
+
+        const { error } = await supabase
+          .from('profiles')
+          .update(profileUpdate)
+          .eq('id', currentUserId)
+
+        // Retry once if the first attempt failed
+        if (error) {
+          await supabase
+            .from('profiles')
+            .update(profileUpdate)
+            .eq('id', currentUserId)
+        }
+      } catch {
+        // non-blocking
+      }
     }
   }, [currentUserId, isPlayer1, matchId, me.elo, mode, opponent.id, opponent.elo, player1, player2])
 
@@ -186,12 +216,35 @@ export function MatchClient({
             const myData = event.result.player1.id === currentUserId
               ? event.result.player1
               : event.result.player2
+            const isWin = event.result.winnerId === currentUserId
+            const isLoss = event.result.winnerId !== null && event.result.winnerId !== currentUserId
+
             const supabase = createClient()
             supabase
               .from('profiles')
-              .update({ elo_probability: myData.eloAfter })
+              .select('total_wins, total_losses, total_draws')
               .eq('id', currentUserId)
-              .then(() => {})
+              .single()
+              .then(({ data: cur }) => {
+                const profileUpdate = {
+                  elo_probability: myData.eloAfter,
+                  total_wins: (cur?.total_wins ?? 0) + (isWin ? 1 : 0),
+                  total_losses: (cur?.total_losses ?? 0) + (isLoss ? 1 : 0),
+                  total_draws: (cur?.total_draws ?? 0) + (!isWin && !isLoss ? 1 : 0),
+                }
+                return supabase
+                  .from('profiles')
+                  .update(profileUpdate)
+                  .eq('id', currentUserId)
+                  .then(({ error }) => {
+                    if (error) {
+                      return supabase
+                        .from('profiles')
+                        .update(profileUpdate)
+                        .eq('id', currentUserId)
+                    }
+                  })
+              })
               .catch(() => {})
           }
         }

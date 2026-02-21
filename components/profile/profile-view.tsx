@@ -1,4 +1,6 @@
 import { cn } from '@/lib/utils'
+import { MODE_LABELS } from '@/lib/game/types'
+import type { GameMode } from '@/lib/game/math-generator'
 
 interface ProfileData {
   id: string
@@ -12,6 +14,7 @@ interface ProfileData {
 
 interface MatchData {
   id: string
+  mode: string
   player1Id: string
   player2Id: string
   player1Score: number
@@ -107,7 +110,7 @@ export function ProfileView({
                     {won ? 'WIN' : lost ? 'LOSS' : 'DRAW'}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    Probability
+                    {MODE_LABELS[match.mode as GameMode] ?? match.mode}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">

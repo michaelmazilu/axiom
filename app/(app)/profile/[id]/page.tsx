@@ -60,6 +60,7 @@ export default async function ProfilePage({
       }}
       matches={(matches ?? []).map((m) => ({
         id: m.id,
+        mode: m.mode,
         player1Id: m.player1_id,
         player2Id: m.player2_id,
         player1Score: m.player1_score,
