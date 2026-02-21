@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { LobbyClient } from '@/components/lobby/lobby-client'
 
 export const metadata = {
@@ -12,7 +11,21 @@ export default async function LobbyPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) redirect('/auth/login')
+  if (!user) {
+    return (
+      <LobbyClient
+        isGuest
+        profile={{
+          id: 'guest',
+          displayName: 'Guest',
+          eloProbability: 1200,
+          totalWins: 0,
+          totalLosses: 0,
+          totalDraws: 0,
+        }}
+      />
+    )
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -20,7 +33,21 @@ export default async function LobbyPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile) redirect('/auth/login')
+  if (!profile) {
+    return (
+      <LobbyClient
+        isGuest
+        profile={{
+          id: 'guest',
+          displayName: 'Guest',
+          eloProbability: 1200,
+          totalWins: 0,
+          totalLosses: 0,
+          totalDraws: 0,
+        }}
+      />
+    )
+  }
 
   return (
     <LobbyClient

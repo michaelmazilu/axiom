@@ -19,7 +19,12 @@ interface OutgoingChallenge {
   opponentName: string
 }
 
-export function LobbyClient({ profile }: { profile: ProfileData }) {
+interface LobbyClientProps {
+  profile: ProfileData
+  isGuest?: boolean
+}
+
+export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   const router = useRouter()
   const [friendName, setFriendName] = useState('')
   const [challengeLoading, setChallengeLoading] = useState(false)
@@ -28,11 +33,21 @@ export function LobbyClient({ profile }: { profile: ProfileData }) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function handlePlay() {
+    if (isGuest) {
+      router.push('/auth/sign-up')
+      return
+    }
     router.push('/queue')
   }
 
   async function handleChallenge(e: React.FormEvent) {
     e.preventDefault()
+
+    if (isGuest) {
+      router.push('/auth/sign-up')
+      return
+    }
+
     if (!friendName.trim()) return
 
     setChallengeError(null)
@@ -114,15 +129,17 @@ export function LobbyClient({ profile }: { profile: ProfileData }) {
       {/* Greeting */}
       <div className="mb-12">
         <h1 className="text-2xl font-medium tracking-tight text-foreground">
-          Ready, {profile.displayName}
+          {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          1v1 probability duels — find a match and prove your skill
+          {isGuest
+            ? 'Create an account to start competing in 1v1 probability duels'
+            : '1v1 probability duels — find a match and prove your skill'}
         </p>
       </div>
 
-      {/* Stats summary */}
-      <PlayerStats profile={profile} className="mb-12" />
+      {/* Stats summary — only for logged-in users */}
+      {!isGuest && <PlayerStats profile={profile} className="mb-12" />}
 
       {/* Actions */}
       <div className="flex flex-col items-center gap-8">
@@ -131,7 +148,7 @@ export function LobbyClient({ profile }: { profile: ProfileData }) {
           onClick={handlePlay}
           className="h-14 w-full max-w-sm rounded-md bg-primary text-base font-medium text-primary-foreground transition-all hover:bg-primary/90"
         >
-          Find match
+          {isGuest ? 'Sign up to play' : 'Find match'}
         </button>
 
         {/* Divider */}
@@ -186,12 +203,12 @@ export function LobbyClient({ profile }: { profile: ProfileData }) {
                   setFriendName(e.target.value)
                   setChallengeError(null)
                 }}
-                placeholder="Enter display name"
+                placeholder="Enter username"
                 className="h-11 flex-1 rounded-md border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
               />
               <button
                 type="submit"
-                disabled={challengeLoading || !friendName.trim()}
+                disabled={challengeLoading || (!isGuest && !friendName.trim())}
                 className="h-11 rounded-md border border-border bg-card px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {challengeLoading ? 'Sending...' : 'Challenge'}

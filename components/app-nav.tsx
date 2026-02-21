@@ -21,7 +21,7 @@ interface AppNavProps {
     id: string
     email: string
     displayName: string
-  }
+  } | null
 }
 
 const navLinks = [
@@ -36,7 +36,7 @@ export function AppNav({ user }: AppNavProps) {
   async function handleSignOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/')
+    router.push('/lobby')
     router.refresh()
   }
 
@@ -66,38 +66,57 @@ export function AppNav({ user }: AppNavProps) {
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="h-9 gap-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="h-9 gap-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs font-medium text-foreground">
+                  {user.displayName.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:inline">{user.displayName}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href={`/profile/${user.id}`} className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/leaderboard" className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  Leaderboard
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Guest</span>
+            <Link
+              href="/auth/login"
+              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs font-medium text-foreground">
-                {user.displayName.charAt(0).toUpperCase()}
-              </div>
-              <span className="hidden sm:inline">{user.displayName}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem asChild>
-              <Link href={`/profile/${user.id}`} className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Profile
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/leaderboard" className="flex items-center gap-2">
-                <Trophy className="h-4 w-4" />
-                Leaderboard
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              Sign in
+            </Link>
+            <Link
+              href="/auth/sign-up"
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Sign up
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   )
