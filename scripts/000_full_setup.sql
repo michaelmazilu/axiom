@@ -4,7 +4,7 @@
 -- 1. Profiles
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  display_name TEXT NOT NULL,
+  display_name TEXT NOT NULL UNIQUE,
   elo_probability INTEGER NOT NULL DEFAULT 1200,
   total_wins INTEGER NOT NULL DEFAULT 0,
   total_losses INTEGER NOT NULL DEFAULT 0,

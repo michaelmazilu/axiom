@@ -8,8 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
+const EMAIL_DOMAIN = 'axiom-users.example.com'
+
+function usernameToEmail(username: string) {
+  return `${username.toLowerCase()}@${EMAIL_DOMAIN}`
+}
+
 export default function SignUpPage() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -18,26 +25,32 @@ export default function SignUpPage() {
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    const trimmedUsername = username.trim()
+
+    if (!USERNAME_REGEX.test(trimmedUsername)) {
+      setError('Username must be 3–20 characters: letters, numbers, or underscores only')
+      return
+    }
+
     setLoading(true)
 
-    const trimmedEmail = email.trim().toLowerCase()
-    const displayName = trimmedEmail.split('@')[0]
-
     const supabase = createClient()
+    const fakeEmail = usernameToEmail(trimmedUsername)
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: trimmedEmail,
+      email: fakeEmail,
       password,
       options: {
         data: {
-          display_name: displayName,
+          display_name: trimmedUsername,
         },
       },
     })
 
     if (signUpError) {
-      if (signUpError.message.includes('already registered')) {
-        setError('An account with this email already exists')
+      if (signUpError.message.includes('already registered') || signUpError.message.includes('already been registered')) {
+        setError('That username is already taken')
       } else if (signUpError.message.includes('rate limit')) {
         setError('Too many attempts. Please wait a moment and try again.')
       } else {
@@ -54,7 +67,7 @@ export default function SignUpPage() {
     }
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: trimmedEmail,
+      email: fakeEmail,
       password,
     })
 
@@ -81,17 +94,19 @@ export default function SignUpPage() {
 
       <form onSubmit={handleSignUp} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email" className="text-sm text-muted-foreground">
-            Email
+          <Label htmlFor="username" className="text-sm text-muted-foreground">
+            Username
           </Label>
           <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            id="username"
+            type="text"
+            placeholder="your_username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
-            autoComplete="email"
+            autoComplete="username"
+            minLength={3}
+            maxLength={20}
             className="h-11 bg-background border-border"
           />
         </div>

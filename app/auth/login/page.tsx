@@ -8,8 +8,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const EMAIL_DOMAIN = 'axiom-users.example.com'
+
+function usernameToEmail(username: string) {
+  return `${username.toLowerCase()}@${EMAIL_DOMAIN}`
+}
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -21,13 +27,15 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
+    const fakeEmail = usernameToEmail(username.trim())
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email: fakeEmail,
       password,
     })
 
     if (error) {
-      setError('Invalid email or password')
+      setError('Invalid username or password')
       setLoading(false)
       return
     }
@@ -49,17 +57,17 @@ export default function LoginPage() {
 
       <form onSubmit={handleLogin} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email" className="text-sm text-muted-foreground">
-            Email
+          <Label htmlFor="username" className="text-sm text-muted-foreground">
+            Username
           </Label>
           <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            id="username"
+            type="text"
+            placeholder="your_username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
-            autoComplete="email"
+            autoComplete="username"
             className="h-11 bg-background border-border"
           />
         </div>
