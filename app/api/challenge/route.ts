@@ -38,7 +38,11 @@ export async function POST(request: NextRequest) {
     .eq('challenger_id', user.id)
     .eq('status', 'pending')
 
-  const { data: challenge, error: challengeError } = await supabase
+  // Try insert with mode first, fall back to without mode if column doesn't exist
+  let challenge = null
+  let challengeError = null
+
+  const { data: d1, error: e1 } = await supabase
     .from('challenges')
     .insert({
       challenger_id: user.id,
@@ -49,8 +53,29 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
+  if (e1) {
+    // Retry without mode in case the column is missing or has a bad constraint
+    const { data: d2, error: e2 } = await supabase
+      .from('challenges')
+      .insert({
+        challenger_id: user.id,
+        challenged_id: opponent.id,
+        status: 'pending',
+      })
+      .select()
+      .single()
+
+    challenge = d2
+    challengeError = e2
+  } else {
+    challenge = d1
+  }
+
   if (challengeError || !challenge) {
-    return NextResponse.json({ error: 'Failed to create challenge' }, { status: 500 })
+    return NextResponse.json(
+      { error: challengeError?.message ?? 'Failed to create challenge' },
+      { status: 500 }
+    )
   }
 
   return NextResponse.json({
