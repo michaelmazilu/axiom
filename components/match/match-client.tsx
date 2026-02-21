@@ -128,58 +128,14 @@ export function MatchClient({
       payload: { type: 'game_over', result: matchResult } satisfies GameEvent,
     })
 
-    const supabase = createClient()
-
-    // Update match row (independent — don't let this block the profile update)
-    try {
-      await supabase
-        .from('matches')
-        .update({
-          player1_score: isPlayer1 ? finalMyScore : finalOpponentScore,
-          player2_score: isPlayer1 ? finalOpponentScore : finalMyScore,
-          winner_id: winnerId,
-          player1_elo_after: isPlayer1 ? myNewElo : oppNewElo,
-          player2_elo_after: isPlayer1 ? oppNewElo : myNewElo,
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', matchId)
-    } catch {
-      // non-blocking
-    }
-
-    // Update own profile: ELO + win/loss/draw counters
     if (!eloUpdatedRef.current) {
       eloUpdatedRef.current = true
       try {
-        const isWin = winnerId === currentUserId
-        const isLoss = winnerId !== null && winnerId !== currentUserId
-
-        const { data: cur } = await supabase
-          .from('profiles')
-          .select('total_wins, total_losses, total_draws')
-          .eq('id', currentUserId)
-          .single()
-
-        const profileUpdate = {
-          elo_probability: myNewElo,
-          total_wins: (cur?.total_wins ?? 0) + (isWin ? 1 : 0),
-          total_losses: (cur?.total_losses ?? 0) + (isLoss ? 1 : 0),
-          total_draws: (cur?.total_draws ?? 0) + (!isWin && !isLoss ? 1 : 0),
-        }
-
-        const { error } = await supabase
-          .from('profiles')
-          .update(profileUpdate)
-          .eq('id', currentUserId)
-
-        // Retry once if the first attempt failed
-        if (error) {
-          await supabase
-            .from('profiles')
-            .update(profileUpdate)
-            .eq('id', currentUserId)
-        }
+        await fetch(`/api/match/${matchId}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ myScore: finalMyScore, opponentScore: finalOpponentScore }),
+        })
       } catch {
         // non-blocking
       }
@@ -222,39 +178,21 @@ export function MatchClient({
 
           if (!eloUpdatedRef.current) {
             eloUpdatedRef.current = true
-            const myData = event.result.player1.id === currentUserId
+            const myResultData = event.result.player1.id === currentUserId
               ? event.result.player1
               : event.result.player2
-            const isWin = event.result.winnerId === currentUserId
-            const isLoss = event.result.winnerId !== null && event.result.winnerId !== currentUserId
+            const oppResultData = event.result.player1.id === currentUserId
+              ? event.result.player2
+              : event.result.player1
 
-            const supabase = createClient()
-            supabase
-              .from('profiles')
-              .select('total_wins, total_losses, total_draws')
-              .eq('id', currentUserId)
-              .single()
-              .then(({ data: cur }) => {
-                const profileUpdate = {
-                  elo_probability: myData.eloAfter,
-                  total_wins: (cur?.total_wins ?? 0) + (isWin ? 1 : 0),
-                  total_losses: (cur?.total_losses ?? 0) + (isLoss ? 1 : 0),
-                  total_draws: (cur?.total_draws ?? 0) + (!isWin && !isLoss ? 1 : 0),
-                }
-                return supabase
-                  .from('profiles')
-                  .update(profileUpdate)
-                  .eq('id', currentUserId)
-                  .then(({ error }) => {
-                    if (error) {
-                      return supabase
-                        .from('profiles')
-                        .update(profileUpdate)
-                        .eq('id', currentUserId)
-                    }
-                  })
-              })
-              .catch(() => {})
+            fetch(`/api/match/${event.result.matchId}/complete`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                myScore: myResultData.score,
+                opponentScore: oppResultData.score,
+              }),
+            }).catch(() => {})
           }
         }
       })

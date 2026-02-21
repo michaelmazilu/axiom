@@ -1,9 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { LeaderboardClient } from '@/components/leaderboard/leaderboard-client'
 
 export const metadata = {
   title: 'Leaderboard',
 }
+
+export const dynamic = 'force-dynamic'
 
 const PREVIEW_PROFILES = [
   { id: 'preview-1',  displayName: 'QuantumAce',      eloProbability: 3121, totalWins: 247, totalLosses: 38 },
@@ -26,18 +29,23 @@ export default async function LeaderboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: profiles } = await supabase
+  const admin = createAdminClient()
+  const { data: profiles, error } = await admin
     .from('profiles')
-    .select('*')
+    .select('id, display_name, elo_probability, total_wins, total_losses')
     .order('elo_probability', { ascending: false })
     .limit(50)
 
+  if (error) {
+    console.error('[leaderboard] profiles query error:', error)
+  }
+
   const realProfiles = (profiles ?? []).map((p) => ({
-    id: p.id,
-    displayName: p.display_name,
-    eloProbability: p.elo_probability ?? 800,
-    totalWins: p.total_wins,
-    totalLosses: p.total_losses,
+    id: p.id as string,
+    displayName: (p.display_name ?? 'Unknown') as string,
+    eloProbability: (p.elo_probability ?? 800) as number,
+    totalWins: (p.total_wins ?? 0) as number,
+    totalLosses: (p.total_losses ?? 0) as number,
   }))
 
   const combined = [...realProfiles, ...PREVIEW_PROFILES]

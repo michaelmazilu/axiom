@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ProfileView } from '@/components/profile/profile-view'
 
+export const dynamic = 'force-dynamic'
+
 export async function generateMetadata({
   params,
 }: {
@@ -53,9 +55,9 @@ export default async function ProfilePage({
         id: profile.id,
         displayName: profile.display_name,
         eloProbability: profile.elo_probability ?? 800,
-        totalWins: profile.total_wins,
-        totalLosses: profile.total_losses,
-        totalDraws: profile.total_draws,
+        totalWins: profile.total_wins ?? 0,
+        totalLosses: profile.total_losses ?? 0,
+        totalDraws: profile.total_draws ?? 0,
         createdAt: profile.created_at,
       }}
       matches={(matches ?? []).map((m) => ({

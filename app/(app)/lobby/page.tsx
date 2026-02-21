@@ -5,6 +5,8 @@ export const metadata = {
   title: 'Lobby',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function LobbyPage() {
   const supabase = await createClient()
   const {
@@ -55,9 +57,9 @@ export default async function LobbyPage() {
         id: profile.id,
         displayName: profile.display_name,
         eloProbability: profile.elo_probability ?? 800,
-        totalWins: profile.total_wins,
-        totalLosses: profile.total_losses,
-        totalDraws: profile.total_draws,
+        totalWins: profile.total_wins ?? 0,
+        totalLosses: profile.total_losses ?? 0,
+        totalDraws: profile.total_draws ?? 0,
       }}
     />
   )
