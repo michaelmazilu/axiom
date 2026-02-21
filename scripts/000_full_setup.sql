@@ -82,3 +82,20 @@ CREATE POLICY "queue_select_all" ON public.matchmaking_queue FOR SELECT USING (t
 CREATE POLICY "queue_insert_own" ON public.matchmaking_queue FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "queue_update_authenticated" ON public.matchmaking_queue FOR UPDATE USING (auth.uid() IS NOT NULL);
 CREATE POLICY "queue_delete_own" ON public.matchmaking_queue FOR DELETE USING (auth.uid() = user_id);
+
+-- 5. Challenges (friend invites)
+CREATE TABLE IF NOT EXISTS public.challenges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  challenger_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  challenged_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  match_id UUID REFERENCES public.matches(id),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'expired')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.challenges ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "challenges_select_participant" ON public.challenges FOR SELECT USING (auth.uid() IN (challenger_id, challenged_id));
+CREATE POLICY "challenges_insert_own" ON public.challenges FOR INSERT WITH CHECK (auth.uid() = challenger_id);
+CREATE POLICY "challenges_update_participant" ON public.challenges FOR UPDATE USING (auth.uid() IN (challenger_id, challenged_id));
+CREATE POLICY "challenges_delete_own" ON public.challenges FOR DELETE USING (auth.uid() = challenger_id);
+ALTER PUBLICATION supabase_realtime ADD TABLE public.challenges;

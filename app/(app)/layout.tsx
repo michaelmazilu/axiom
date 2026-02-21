@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppNav } from '@/components/app-nav'
+import { ChallengeListener } from '@/components/lobby/challenge-listener'
 
 export default async function AppLayout({
   children,
@@ -32,6 +33,7 @@ export default async function AppLayout({
         }}
       />
       <main className="flex-1">{children}</main>
+      <ChallengeListener userId={user.id} />
     </div>
   )
 }
