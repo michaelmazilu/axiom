@@ -22,12 +22,16 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
   const [myScore, setMyScore] = useState(0)
   const [botScore, setBotScore] = useState(0)
   const [currentProblemIndex, setCurrentProblemIndex] = useState(0)
+  const [currentProblem, setCurrentProblem] = useState<MathProblem | null>(null)
   const [answer, setAnswer] = useState('')
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null)
   const [finished, setFinished] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const seedRef = useRef(crypto.randomUUID())
   const problemsRef = useRef<MathProblem[]>([])
+  const lockedProblemRef = useRef<MathProblem | null>(null)
+  const lockedIndexRef = useRef<number>(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const botTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const botIndexRef = useRef(0)
@@ -35,7 +39,15 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
   const botScoreRef = useRef(0)
 
   useEffect(() => {
-    problemsRef.current = generateProblems(seedRef.current, mode, 50)
+    const problems = generateProblems(seedRef.current, mode, 50)
+    problemsRef.current = problems
+    // Set the first problem immediately and lock it
+    if (problems.length > 0) {
+      lockedProblemRef.current = problems[0]
+      lockedIndexRef.current = 0
+      setCurrentProblem(problems[0])
+      setCurrentProblemIndex(0)
+    }
   }, [mode])
 
   const finishGame = useCallback(() => {
@@ -65,6 +77,14 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
   useEffect(() => {
     if (phase !== 'playing') return
 
+    // Ensure current problem is set when starting to play
+    if (!lockedProblemRef.current && problemsRef.current.length > 0) {
+      lockedProblemRef.current = problemsRef.current[0]
+      lockedIndexRef.current = 0
+      setCurrentProblem(problemsRef.current[0])
+      setCurrentProblemIndex(0)
+    }
+
     inputRef.current?.focus()
 
     timerRef.current = setInterval(() => {
@@ -79,6 +99,7 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
   useEffect(() => {
@@ -120,9 +141,10 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (phase !== 'playing' || !answer.trim()) return
+    if (phase !== 'playing' || !answer.trim() || isTransitioning) return
 
-    const problem = problemsRef.current[currentProblemIndex]
+    // Use locked problem to ensure we're checking the right one
+    const problem = lockedProblemRef.current || problemsRef.current[lockedIndexRef.current]
     if (!problem) return
 
     const numAnswer = parseFloat(answer)
@@ -132,18 +154,57 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
       const points = problem.difficulty
       setMyScore((s) => s + points)
       setFeedback('correct')
+
+      // Move to next problem after brief delay
+      setAnswer('')
+      setIsTransitioning(true)
+      
+      setTimeout(() => {
+        const nextIndex = lockedIndexRef.current + 1
+        const nextProblem = problemsRef.current[nextIndex]
+        
+        if (nextProblem) {
+          // Lock the next problem immediately
+          lockedProblemRef.current = nextProblem
+          lockedIndexRef.current = nextIndex
+          setCurrentProblem(nextProblem)
+          setCurrentProblemIndex(nextIndex)
+          setFeedback(null) // Clear feedback for new problem
+        } else {
+          setCurrentProblem(null)
+        }
+        
+        setIsTransitioning(false)
+        setTimeout(() => inputRef.current?.focus(), 50)
+      }, 200)
     } else {
       setFeedback('incorrect')
+
+      // Flash red, then move to next problem
+      setAnswer('')
+      setIsTransitioning(true)
+      
+      // Flash red briefly, then transition
+      setTimeout(() => {
+        const nextIndex = lockedIndexRef.current + 1
+        const nextProblem = problemsRef.current[nextIndex]
+        
+        if (nextProblem) {
+          // Lock the next problem immediately
+          lockedProblemRef.current = nextProblem
+          lockedIndexRef.current = nextIndex
+          setCurrentProblem(nextProblem)
+          setCurrentProblemIndex(nextIndex)
+          setFeedback(null) // Clear feedback for new problem
+        } else {
+          setCurrentProblem(null)
+        }
+        
+        setIsTransitioning(false)
+        setTimeout(() => inputRef.current?.focus(), 50)
+      }, 250) // Brief delay for wrong answer to see the red flash
     }
-
-    setAnswer('')
-    setCurrentProblemIndex((i) => i + 1)
-
-    setTimeout(() => setFeedback(null), 400)
-    setTimeout(() => inputRef.current?.focus(), 50)
   }
-
-  const currentProblem = problemsRef.current[currentProblemIndex]
 
   if (phase === 'countdown') {
     return (
@@ -184,10 +245,10 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">
-        {currentProblem && (
+        {lockedProblemRef.current && (
           <ProblemDisplay
-            problem={currentProblem}
-            index={currentProblemIndex}
+            problem={lockedProblemRef.current}
+            index={lockedIndexRef.current}
             feedback={feedback}
           />
         )}

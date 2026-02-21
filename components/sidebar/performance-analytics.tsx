@@ -241,36 +241,36 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.accuracyTrend} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <defs>
-                      <linearGradient id={`accuracyGradient-${userId}-${variant}`} x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id={`accuracyGradient-${userId}-${variant}`} x1="0" y1="1" x2="0" y2="0">
                         <stop
                           offset="0%"
                           stopColor="rgb(239, 68, 68)"
-                          stopOpacity={0.8}
+                          stopOpacity={1}
                         />
                         <stop
-                          offset="30%"
+                          offset="25%"
                           stopColor="rgb(251, 146, 60)"
-                          stopOpacity={0.6}
+                          stopOpacity={0.9}
                         />
                         <stop
                           offset="50%"
                           stopColor="rgb(34, 197, 94)"
-                          stopOpacity={0.8}
+                          stopOpacity={1}
                         />
                         <stop
-                          offset="70%"
+                          offset="75%"
                           stopColor="rgb(251, 146, 60)"
-                          stopOpacity={0.6}
+                          stopOpacity={0.9}
                         />
                         <stop
                           offset="100%"
                           stopColor="rgb(239, 68, 68)"
-                          stopOpacity={0.8}
+                          stopOpacity={1}
                         />
                       </linearGradient>
                     </defs>
                     <Area
-                      type="monotone"
+                      type="basis"
                       dataKey="value"
                       stroke="none"
                       fill={`url(#accuracyGradient-${userId}-${variant})`}
@@ -303,26 +303,26 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.speedTrend} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <defs>
-                      <linearGradient id={`speedGradient-${userId}-${variant}`} x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id={`speedGradient-${userId}-${variant}`} x1="0" y1="1" x2="0" y2="0">
                         <stop
                           offset="0%"
-                          stopColor="rgb(59, 130, 246)"
-                          stopOpacity={0.3}
+                          stopColor="rgb(147, 197, 253)"
+                          stopOpacity={0.4}
                         />
                         <stop
                           offset="50%"
-                          stopColor="rgb(37, 99, 235)"
-                          stopOpacity={0.8}
+                          stopColor="rgb(59, 130, 246)"
+                          stopOpacity={1}
                         />
                         <stop
                           offset="100%"
-                          stopColor="rgb(59, 130, 246)"
-                          stopOpacity={0.3}
+                          stopColor="rgb(147, 197, 253)"
+                          stopOpacity={0.4}
                         />
                       </linearGradient>
                     </defs>
                     <Area
-                      type="monotone"
+                      type="basis"
                       dataKey="value"
                       stroke="none"
                       fill={`url(#speedGradient-${userId}-${variant})`}
@@ -339,19 +339,20 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
   )
 }
 
-// Generate bell curve trend data
+// Generate smooth bell curve trend data (like Monkeytype)
 function generateTrendData(min: number, max: number): { value: number }[] {
-  const points = 20
+  const points = 30
   const data: { value: number }[] = []
   const center = points / 2
   const range = max - min
+  const sigma = points / 4.5 // Controls curve width
 
   for (let i = 0; i < points; i++) {
-    // Bell curve formula
-    const x = (i - center) / (points / 4)
+    // Smoother bell curve formula
+    const x = (i - center) / sigma
     const bellValue = Math.exp(-(x * x) / 2)
     const value = min + bellValue * range
-    data.push({ value: Math.round(value) })
+    data.push({ value: Math.max(min, Math.round(value)) })
   }
 
   return data

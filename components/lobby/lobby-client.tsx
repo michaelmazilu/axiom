@@ -175,16 +175,16 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
       </div>
 
       {/* Category Selector */}
-      <div className="mb-8 flex flex-wrap gap-2">
+      <div className="mb-8 flex flex-wrap gap-3">
         {GAME_MODES.map((mode) => (
           <button
             key={mode}
             onClick={() => setSelectedMode(mode)}
             className={cn(
-              'rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
+              'px-5 py-2.5 text-sm font-medium transition-all border rounded-md',
               selectedMode === mode
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground hover:text-foreground'
+                ? 'bg-foreground text-background border-foreground shadow-sm'
+                : 'bg-background text-muted-foreground border-border hover:border-foreground/50 hover:text-foreground'
             )}
           >
             {MODE_LABELS[mode]}

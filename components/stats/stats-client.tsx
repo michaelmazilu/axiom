@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { BarChart3, LogIn, UserPlus } from 'lucide-react'
 import { PerformanceAnalytics } from '@/components/sidebar/performance-analytics'
+import { TypingStats } from '@/components/stats/typing-stats'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -67,6 +68,8 @@ export function StatsClient({ user }: StatsClientProps) {
       </div>
 
       <div className="space-y-6">
+        <TypingStats userId={user.id} />
+        
         <Card>
           <CardHeader>
             <CardTitle>Your Performance</CardTitle>
