@@ -8,12 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 const EMAIL_DOMAIN = 'axiom-users.example.com'
-
-function usernameToEmail(username: string) {
-  return `${username.toLowerCase()}@${EMAIL_DOMAIN}`
-}
 
 export default function SignUpPage() {
   const [username, setUsername] = useState('')
@@ -28,43 +23,29 @@ export default function SignUpPage() {
 
     const trimmedUsername = username.trim()
 
-    if (!USERNAME_REGEX.test(trimmedUsername)) {
-      setError('Username must be 3–20 characters: letters, numbers, or underscores only')
+    if (!/^[a-zA-Z0-9._]{3,20}$/.test(trimmedUsername)) {
+      setError('Username must be 3–20 characters: letters, numbers, dots, or underscores')
       return
     }
 
     setLoading(true)
 
-    const supabase = createClient()
-    const fakeEmail = usernameToEmail(trimmedUsername)
-
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: fakeEmail,
-      password,
-      options: {
-        data: {
-          display_name: trimmedUsername,
-        },
-      },
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: trimmedUsername, password }),
     })
 
-    if (signUpError) {
-      if (signUpError.message.includes('already registered') || signUpError.message.includes('already been registered')) {
-        setError('That username is already taken')
-      } else if (signUpError.message.includes('rate limit')) {
-        setError('Too many attempts. Please wait a moment and try again.')
-      } else {
-        setError(signUpError.message)
-      }
+    const data = await res.json()
+
+    if (!res.ok) {
+      setError(data.error || 'Something went wrong')
       setLoading(false)
       return
     }
 
-    if (signUpData?.session) {
-      router.push('/lobby')
-      router.refresh()
-      return
-    }
+    const supabase = createClient()
+    const fakeEmail = `${trimmedUsername.toLowerCase()}@${EMAIL_DOMAIN}`
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: fakeEmail,
@@ -72,7 +53,7 @@ export default function SignUpPage() {
     })
 
     if (signInError) {
-      setError(signInError.message)
+      setError('Account created but sign-in failed. Try logging in.')
       setLoading(false)
       return
     }
