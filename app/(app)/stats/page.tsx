@@ -1,0 +1,36 @@
+import { createClient } from '@/lib/supabase/server'
+import { StatsClient } from '@/components/stats/stats-client'
+
+export const metadata = {
+  title: 'Stats',
+}
+
+export default async function StatsPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  let profile = null
+  if (user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    profile = data
+  }
+
+  return (
+    <StatsClient
+      user={
+        user
+          ? {
+              id: user.id,
+              displayName: profile?.display_name ?? 'Player',
+            }
+          : null
+      }
+    />
+  )
+}

@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Gamepad2, Trophy, User, LogOut, LogIn, UserPlus } from 'lucide-react'
+import { Gamepad2, Trophy, User, LogOut, LogIn, UserPlus, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { PerformanceAnalytics } from '@/components/sidebar/performance-analytics'
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
@@ -17,6 +18,7 @@ interface SidebarProps {
 const navLinks = [
   { href: '/lobby', label: 'Play', icon: Gamepad2 },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+  { href: '/stats', label: 'Stats', icon: BarChart3 },
 ]
 
 export function Sidebar({ user }: SidebarProps) {
@@ -80,6 +82,9 @@ export function Sidebar({ user }: SidebarProps) {
           )}
         </div>
       </nav>
+
+      {/* Performance Analytics */}
+      {user && <PerformanceAnalytics userId={user.id} />}
 
       {/* Bottom */}
       <div className="border-t border-sidebar-border px-3 py-4">

@@ -170,7 +170,7 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
           {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          1v1 probability duels — 120 seconds, speed and precision
+          1v1 probability duels - 120 seconds
         </p>
       </div>
 
