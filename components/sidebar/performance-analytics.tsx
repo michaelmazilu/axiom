@@ -42,17 +42,49 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
         .order('created_at', { ascending: false })
 
       if (!matches || matches.length === 0) {
-        // Return default data for new users
+        // Preview data so charts are visible during development
         setData({
-          highestAccuracy: 0,
-          totalAttempts: 0,
-          winRate: 0,
-          averageScore: 0,
-          wins: 0,
-          losses: 0,
-          draws: 0,
-          accuracyTrend: [],
-          eloTrend: [],
+          highestAccuracy: 92,
+          totalAttempts: 47,
+          winRate: 64,
+          averageScore: 6,
+          wins: 30,
+          losses: 12,
+          draws: 5,
+          accuracyTrend: [
+            { date: 'Jan 5', value: 45 },
+            { date: 'Jan 8', value: 52 },
+            { date: 'Jan 12', value: 48 },
+            { date: 'Jan 15', value: 61 },
+            { date: 'Jan 19', value: 55 },
+            { date: 'Jan 23', value: 67 },
+            { date: 'Jan 27', value: 63 },
+            { date: 'Feb 1', value: 72 },
+            { date: 'Feb 4', value: 68 },
+            { date: 'Feb 8', value: 75 },
+            { date: 'Feb 11', value: 71 },
+            { date: 'Feb 14', value: 80 },
+            { date: 'Feb 17', value: 78 },
+            { date: 'Feb 20', value: 85 },
+            { date: 'Feb 21', value: 92 },
+          ],
+          eloTrend: [
+            { date: 'Jan 5', value: 800 },
+            { date: 'Jan 8', value: 812 },
+            { date: 'Jan 12', value: 804 },
+            { date: 'Jan 15', value: 828 },
+            { date: 'Jan 19', value: 819 },
+            { date: 'Jan 23', value: 845 },
+            { date: 'Jan 27', value: 838 },
+            { date: 'Feb 1', value: 861 },
+            { date: 'Feb 4', value: 852 },
+            { date: 'Feb 8', value: 876 },
+            { date: 'Feb 11', value: 869 },
+            { date: 'Feb 14', value: 891 },
+            { date: 'Feb 17', value: 883 },
+            { date: 'Feb 20', value: 905 },
+            { date: 'Feb 21', value: 918 },
+          ],
         })
         setLoading(false)
         return
@@ -336,26 +368,29 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                   }}
                   className="h-full w-full"
                 >
-                  <LineChart data={data.accuracyTrend} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
+                  <LineChart data={data.accuracyTrend} margin={{ top: 5, right: 10, bottom: 20, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis 
                       dataKey="date" 
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={10}
                       tickLine={false}
+                      interval="preserveStartEnd"
                     />
                     <YAxis 
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={10}
                       tickLine={false}
+                      width={30}
                       domain={[0, 100]}
                     />
                     <Line
                       type="monotone"
                       dataKey="value"
-                      stroke="hsl(var(--foreground))"
+                      stroke="#16a34a"
                       strokeWidth={2}
-                      dot={false}
+                      dot={{ r: 2, fill: '#16a34a' }}
+                      activeDot={{ r: 4, fill: '#16a34a' }}
                     />
                   </LineChart>
                 </ChartContainer>
@@ -386,25 +421,29 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                   }}
                   className="h-full w-full"
                 >
-                  <LineChart data={data.eloTrend} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
+                  <LineChart data={data.eloTrend} margin={{ top: 5, right: 10, bottom: 20, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis 
                       dataKey="date" 
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={10}
                       tickLine={false}
+                      interval="preserveStartEnd"
                     />
                     <YAxis 
                       stroke="hsl(var(--muted-foreground))"
                       fontSize={10}
                       tickLine={false}
+                      width={35}
+                      domain={['dataMin - 30', 'dataMax + 30']}
                     />
                     <Line
                       type="monotone"
                       dataKey="value"
-                      stroke="hsl(var(--foreground))"
+                      stroke="#2563eb"
                       strokeWidth={2}
-                      dot={false}
+                      dot={{ r: 2, fill: '#2563eb' }}
+                      activeDot={{ r: 4, fill: '#2563eb' }}
                     />
                   </LineChart>
                 </ChartContainer>
