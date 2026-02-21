@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT NOT NULL UNIQUE,
-  elo_probability INTEGER NOT NULL DEFAULT 1200,
+  elo_probability INTEGER NOT NULL DEFAULT 800,
   total_wins INTEGER NOT NULL DEFAULT 0,
   total_losses INTEGER NOT NULL DEFAULT 0,
   total_draws INTEGER NOT NULL DEFAULT 0,
@@ -55,10 +55,10 @@ CREATE TABLE IF NOT EXISTS public.matches (
   player1_score INTEGER NOT NULL DEFAULT 0,
   player2_score INTEGER NOT NULL DEFAULT 0,
   winner_id UUID REFERENCES public.profiles(id),
-  player1_elo_before INTEGER NOT NULL DEFAULT 1200,
-  player2_elo_before INTEGER NOT NULL DEFAULT 1200,
-  player1_elo_after INTEGER NOT NULL DEFAULT 1200,
-  player2_elo_after INTEGER NOT NULL DEFAULT 1200,
+  player1_elo_before INTEGER NOT NULL DEFAULT 800,
+  player2_elo_before INTEGER NOT NULL DEFAULT 800,
+  player1_elo_after INTEGER NOT NULL DEFAULT 800,
+  player2_elo_after INTEGER NOT NULL DEFAULT 800,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at TIMESTAMPTZ
 );

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { PlayerStats } from './player-stats'
 import { Globe, Bot, UserPlus, X, Flame } from 'lucide-react'
 import type { GameMode } from '@/lib/game/math-generator'
 import { MODE_LABELS, GAME_MODES } from '@/lib/game/types'
@@ -361,8 +360,6 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
         </div>
       )}
 
-      {/* Player stats */}
-      {!isGuest && <PlayerStats profile={profile} className="mt-10" />}
     </div>
   )
 }

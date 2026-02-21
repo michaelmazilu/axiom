@@ -9,10 +9,10 @@ CREATE TABLE IF NOT EXISTS public.matches (
   player1_score INTEGER NOT NULL DEFAULT 0,
   player2_score INTEGER NOT NULL DEFAULT 0,
   winner_id UUID REFERENCES public.profiles(id),
-  player1_elo_before INTEGER NOT NULL DEFAULT 1200,
-  player2_elo_before INTEGER NOT NULL DEFAULT 1200,
-  player1_elo_after INTEGER NOT NULL DEFAULT 1200,
-  player2_elo_after INTEGER NOT NULL DEFAULT 1200,
+  player1_elo_before INTEGER NOT NULL DEFAULT 800,
+  player2_elo_before INTEGER NOT NULL DEFAULT 800,
+  player1_elo_after INTEGER NOT NULL DEFAULT 800,
+  player2_elo_after INTEGER NOT NULL DEFAULT 800,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at TIMESTAMPTZ
 );

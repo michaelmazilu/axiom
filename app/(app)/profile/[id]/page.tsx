@@ -52,7 +52,7 @@ export default async function ProfilePage({
       profile={{
         id: profile.id,
         displayName: profile.display_name,
-        eloProbability: profile.elo_probability ?? 1200,
+        eloProbability: profile.elo_probability ?? 800,
         totalWins: profile.total_wins,
         totalLosses: profile.total_losses,
         totalDraws: profile.total_draws,

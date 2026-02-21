@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Trophy, Info, ChevronUp } from 'lucide-react'
 import { ChartContainer } from '@/components/ui/chart'
-import { Area, AreaChart, ResponsiveContainer } from 'recharts'
+import { Line, LineChart, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { cn } from '@/lib/utils'
 
 interface PerformanceData {
@@ -12,8 +12,8 @@ interface PerformanceData {
   totalAttempts: number
   winRate: number
   averageScore: number
-  accuracyTrend: { value: number }[]
-  eloTrend: { value: number }[]
+  accuracyTrend: { date: string; value: number }[]
+  eloTrend: { date: string; value: number }[]
 }
 
 interface PerformanceAnalyticsProps {
@@ -45,8 +45,8 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
           totalAttempts: 0,
           winRate: 0,
           averageScore: 0,
-          accuracyTrend: generateTrendData(0, 100),
-          eloTrend: generateTrendData(1000, 1500),
+          accuracyTrend: [],
+          eloTrend: [],
         })
         setLoading(false)
         return
@@ -65,6 +65,7 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
           score: userScore,
           accuracy,
           won,
+          date: match.completed_at || match.created_at,
         }
       })
 
@@ -84,29 +85,32 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: true })
 
-      // Generate trend data
-      const accuracyTrend = generateTrendData(
-        Math.max(0, highestAccuracy - 20),
-        highestAccuracy
-      )
+      // Generate accuracy trend from actual match data with dates
+      const accuracyTrend = userMatches
+        .filter(m => m.date)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map(m => ({
+          date: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          value: Math.round(m.accuracy),
+        }))
       
-      // Generate ELO trend from actual match data
-      let eloTrend: { value: number }[]
+      // Generate ELO trend from actual match data with dates
+      let eloTrend: { date: string; value: number }[] = []
       if (eloMatches && eloMatches.length > 0) {
-        const eloValues = eloMatches.map(match => {
-          const isPlayer1 = match.player1_id === userId
-          return isPlayer1 ? match.player1_elo_after : match.player2_elo_after
-        }).filter((elo): elo is number => elo !== null && elo !== undefined)
-        
-        if (eloValues.length > 0) {
-          const minElo = Math.min(...eloValues)
-          const maxElo = Math.max(...eloValues)
-          eloTrend = generateTrendData(minElo, maxElo)
-        } else {
-          eloTrend = generateTrendData(1000, 1500)
-        }
-      } else {
-        eloTrend = generateTrendData(1000, 1500)
+        eloTrend = eloMatches
+          .filter(match => {
+            const isPlayer1 = match.player1_id === userId
+            const elo = isPlayer1 ? match.player1_elo_after : match.player2_elo_after
+            return elo !== null && elo !== undefined && match.completed_at
+          })
+          .map(match => {
+            const isPlayer1 = match.player1_id === userId
+            const elo = isPlayer1 ? match.player1_elo_after : match.player2_elo_after
+            return {
+              date: new Date(match.completed_at!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              value: elo as number,
+            }
+          })
       }
 
       setData({
@@ -254,59 +258,46 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
             )}>
               Accuracy trend
             </div>
-            <div className="h-20 w-full">
-              <ChartContainer
-                config={{
-                  accuracy: {
-                    label: 'Accuracy',
-                    color: 'hsl(var(--chart-1))',
-                  },
-                }}
-                className="h-full w-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.accuracyTrend} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                    <defs>
-                      <linearGradient id={`accuracyGradient-${userId}-${variant}`} x1="0" y1="1" x2="0" y2="0">
-                        <stop
-                          offset="0%"
-                          stopColor="rgb(239, 68, 68)"
-                          stopOpacity={1}
-                        />
-                        <stop
-                          offset="25%"
-                          stopColor="rgb(251, 146, 60)"
-                          stopOpacity={0.9}
-                        />
-                        <stop
-                          offset="50%"
-                          stopColor="rgb(34, 197, 94)"
-                          stopOpacity={1}
-                        />
-                        <stop
-                          offset="75%"
-                          stopColor="rgb(251, 146, 60)"
-                          stopOpacity={0.9}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="rgb(239, 68, 68)"
-                          stopOpacity={1}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <Area
-                      type="linear"
-                      dataKey="value"
-                      stroke={`url(#accuracyGradient-${userId}-${variant})`}
-                      strokeWidth={2}
-                      fill={`url(#accuracyGradient-${userId}-${variant})`}
-                      fillOpacity={0.3}
+            {data.accuracyTrend.length > 0 ? (
+              <div className="h-32 w-full">
+                <ChartContainer
+                  config={{
+                    accuracy: {
+                      label: 'Accuracy',
+                      color: 'hsl(var(--chart-1))',
+                    },
+                  }}
+                  className="h-full w-full"
+                >
+                  <LineChart data={data.accuracyTrend} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={10}
+                      tickLine={false}
                     />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={10}
+                      tickLine={false}
+                      domain={[0, 100]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="hsl(var(--foreground))"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ChartContainer>
+              </div>
+            ) : (
+              <div className="h-32 w-full flex items-center justify-center text-xs text-muted-foreground">
+                No data available
+              </div>
+            )}
           </div>
 
           {/* ELO Trend */}
@@ -317,49 +308,45 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
             )}>
               ELO trend
             </div>
-            <div className="h-20 w-full">
-              <ChartContainer
-                config={{
-                  elo: {
-                    label: 'ELO',
-                    color: 'hsl(var(--chart-2))',
-                  },
-                }}
-                className="h-full w-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data.eloTrend} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                    <defs>
-                      <linearGradient id={`eloGradient-${userId}-${variant}`} x1="0" y1="1" x2="0" y2="0">
-                        <stop
-                          offset="0%"
-                          stopColor="rgb(147, 197, 253)"
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="50%"
-                          stopColor="rgb(59, 130, 246)"
-                          stopOpacity={1}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="rgb(147, 197, 253)"
-                          stopOpacity={0.4}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <Area
-                      type="linear"
-                      dataKey="value"
-                      stroke={`url(#eloGradient-${userId}-${variant})`}
-                      strokeWidth={2}
-                      fill={`url(#eloGradient-${userId}-${variant})`}
-                      fillOpacity={0.3}
+            {data.eloTrend.length > 0 ? (
+              <div className="h-32 w-full">
+                <ChartContainer
+                  config={{
+                    elo: {
+                      label: 'ELO',
+                      color: 'hsl(var(--chart-2))',
+                    },
+                  }}
+                  className="h-full w-full"
+                >
+                  <LineChart data={data.eloTrend} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={10}
+                      tickLine={false}
                     />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={10}
+                      tickLine={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="hsl(var(--foreground))"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ChartContainer>
+              </div>
+            ) : (
+              <div className="h-32 w-full flex items-center justify-center text-xs text-muted-foreground">
+                No data available
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -367,21 +354,3 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
   )
 }
 
-// Generate smooth bell curve trend data (like Monkeytype)
-function generateTrendData(min: number, max: number): { value: number }[] {
-  const points = 30
-  const data: { value: number }[] = []
-  const center = points / 2
-  const range = max - min
-  const sigma = points / 4.5 // Controls curve width
-
-  for (let i = 0; i < points; i++) {
-    // Smoother bell curve formula
-    const x = (i - center) / sigma
-    const bellValue = Math.exp(-(x * x) / 2)
-    const value = min + bellValue * range
-    data.push({ value: Math.max(min, Math.round(value)) })
-  }
-
-  return data
-}

@@ -42,6 +42,7 @@ export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
   const botScoreRef = useRef(0)
   const botNumberRef = useRef(1)
 
+  // Generate problems only when mode changes
   useEffect(() => {
     const problems = generateProblems(seedRef.current, mode, 50)
     problemsRef.current = problems
@@ -54,8 +55,10 @@ export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
       setCurrentProblem(firstProblem)
       setCurrentProblemIndex(0)
     }
-    
-    // Initialize bot name and ELO
+  }, [mode])
+
+  // Initialize bot name only once
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedBotNumber = localStorage.getItem('botNumber')
       if (storedBotNumber) {
@@ -68,10 +71,7 @@ export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
         localStorage.setItem('botNumber', '1')
       }
     }
-    
-    // Bot ELO always matches user ELO rounded to nearest 100
-    setBotElo(Math.round(userElo / 100) * 100)
-  }, [mode, userElo])
+  }, [])
 
   // Update bot ELO whenever userElo changes, rounded to nearest 100
   useEffect(() => {
@@ -112,13 +112,17 @@ export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
   useEffect(() => {
     if (phase !== 'playing') return
 
-    // Ensure current problem is set when starting to play - only set once
+    // Ensure current problem is set when starting to play - only set once if not already locked
     if (lockedProblemRef.current === null && problemsRef.current.length > 0) {
       const firstProblem = problemsRef.current[0]
       lockedProblemRef.current = firstProblem
       lockedIndexRef.current = 0
       setCurrentProblem(firstProblem)
       setCurrentProblemIndex(0)
+    } else if (lockedProblemRef.current) {
+      // If we already have a locked problem, make sure state is in sync
+      setCurrentProblem(lockedProblemRef.current)
+      setCurrentProblemIndex(lockedIndexRef.current)
     }
 
     inputRef.current?.focus()
@@ -321,7 +325,7 @@ export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
             onChange={(e) => setAnswer(e.target.value)}
             placeholder="Your answer"
             autoFocus
-            className="h-14 w-full rounded-lg border border-border bg-card px-4 text-center font-mono text-2xl text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+            className="h-14 w-full rounded-lg border border-border bg-card px-4 text-center font-mono text-2xl text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
           />
           <button type="submit" className="sr-only">
             Submit

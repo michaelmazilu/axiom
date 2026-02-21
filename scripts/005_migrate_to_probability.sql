@@ -2,7 +2,7 @@
 -- Run this if your database was set up with the old schema.
 
 -- Add new column
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS elo_probability INTEGER NOT NULL DEFAULT 1200;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS elo_probability INTEGER NOT NULL DEFAULT 800;
 
 -- Copy the best Elo from the old columns (if they exist)
 DO $$
