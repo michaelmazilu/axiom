@@ -64,11 +64,13 @@ export function MatchClient({
   useEffect(() => {
     const problems = generateProblems(seed, mode, 50)
     problemsRef.current = problems
-    // Set the first problem immediately and lock it
-    if (problems.length > 0) {
-      lockedProblemRef.current = problems[0]
+    // Only set the first problem if we don't already have a locked problem
+    // This prevents resetting during the game
+    if (lockedProblemRef.current === null && problems.length > 0) {
+      const firstProblem = problems[0]
+      lockedProblemRef.current = firstProblem
       lockedIndexRef.current = 0
-      setCurrentProblem(problems[0])
+      setCurrentProblem(firstProblem)
       setCurrentProblemIndex(0)
     }
   }, [seed, mode])
@@ -235,11 +237,12 @@ export function MatchClient({
   useEffect(() => {
     if (phase !== 'playing') return
 
-    // Ensure current problem is set when starting to play
-    if (!lockedProblemRef.current && problemsRef.current.length > 0) {
-      lockedProblemRef.current = problemsRef.current[0]
+    // Ensure current problem is set when starting to play - only set once
+    if (lockedProblemRef.current === null && problemsRef.current.length > 0) {
+      const firstProblem = problemsRef.current[0]
+      lockedProblemRef.current = firstProblem
       lockedIndexRef.current = 0
-      setCurrentProblem(problemsRef.current[0])
+      setCurrentProblem(firstProblem)
       setCurrentProblemIndex(0)
     }
 
@@ -428,11 +431,13 @@ export function MatchClient({
 
       <div className="flex flex-1 flex-col items-center justify-center">
         {lockedProblemRef.current && (
-          <ProblemDisplay
-            problem={lockedProblemRef.current}
-            index={lockedIndexRef.current}
-            feedback={feedback}
-          />
+          <div className="w-full flex justify-center">
+            <ProblemDisplay
+              problem={lockedProblemRef.current}
+              index={lockedIndexRef.current}
+              feedback={feedback}
+            />
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-10 w-full max-w-xs">

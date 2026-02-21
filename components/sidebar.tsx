@@ -83,9 +83,6 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Performance Analytics */}
-      {user && <PerformanceAnalytics userId={user.id} />}
-
       {/* Bottom */}
       <div className="border-t border-sidebar-border px-3 py-4">
         <div className="mb-3 flex justify-center">

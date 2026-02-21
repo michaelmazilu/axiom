@@ -47,11 +47,13 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
   useEffect(() => {
     const problems = generateProblems(seedRef.current, mode, 50)
     problemsRef.current = problems
-    // Set the first problem immediately and lock it
-    if (problems.length > 0) {
-      lockedProblemRef.current = problems[0]
+    // Only set the first problem if we don't already have a locked problem
+    // This prevents resetting during the game
+    if (lockedProblemRef.current === null && problems.length > 0) {
+      const firstProblem = problems[0]
+      lockedProblemRef.current = firstProblem
       lockedIndexRef.current = 0
-      setCurrentProblem(problems[0])
+      setCurrentProblem(firstProblem)
       setCurrentProblemIndex(0)
     }
     
@@ -69,7 +71,7 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
       }
     }
     
-    // Bot ELO starts at 800
+    // Bot ELO starts at 800 (matches countdown display)
     setBotElo(800)
   }, [mode, userElo])
 
@@ -79,9 +81,10 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
     setPhase('finished')
     setFinished(true)
     
-    // Increment bot number for next match
+    // Increment bot number for next match (only by 1)
     if (typeof window !== 'undefined') {
-      botNumberRef.current += 1
+      const currentNum = botNumberRef.current
+      botNumberRef.current = currentNum + 1
       localStorage.setItem('botNumber', botNumberRef.current.toString())
     }
   }, [])
@@ -106,11 +109,12 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
   useEffect(() => {
     if (phase !== 'playing') return
 
-    // Ensure current problem is set when starting to play
-    if (!lockedProblemRef.current && problemsRef.current.length > 0) {
-      lockedProblemRef.current = problemsRef.current[0]
+    // Ensure current problem is set when starting to play - only set once
+    if (lockedProblemRef.current === null && problemsRef.current.length > 0) {
+      const firstProblem = problemsRef.current[0]
+      lockedProblemRef.current = firstProblem
       lockedIndexRef.current = 0
-      setCurrentProblem(problemsRef.current[0])
+      setCurrentProblem(firstProblem)
       setCurrentProblemIndex(0)
     }
 
@@ -155,10 +159,19 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
       eloChangeCountRef.current += 1
     }
 
-    // Bot performance based on ELO difference
+    // Bot performance based on ELO
+    // For 800 ELO bot, aim for 8-12 questions correct (out of ~50 in 120 seconds)
+    // That's roughly 16-24% accuracy overall
     const eloDiff = botElo - userElo
-    const baseAccuracy = eloDiff > 200 ? 0.9 : eloDiff > 0 ? 0.75 : eloDiff > -200 ? 0.6 : 0.4
-    const adjustedAccuracy = baseAccuracy - (problem.difficulty - 3) * 0.1
+    // Base accuracy scales with ELO, but for 800 ELO, keep it low to get 8-12 correct
+    let baseAccuracy: number
+    if (botElo === 800) {
+      // For 800 ELO: 20-30% accuracy depending on difficulty to get 8-12 correct
+      baseAccuracy = problem.difficulty <= 2 ? 0.3 : problem.difficulty <= 4 ? 0.25 : 0.2
+    } else {
+      baseAccuracy = eloDiff > 200 ? 0.9 : eloDiff > 0 ? 0.75 : eloDiff > -200 ? 0.6 : 0.4
+    }
+    const adjustedAccuracy = baseAccuracy - (problem.difficulty - 3) * 0.05 // Smaller difficulty penalty
     
     const baseDuration = problem.difficulty <= 2 ? 3000 : problem.difficulty <= 4 ? 6000 : 9000
     const eloMultiplier = eloDiff > 200 ? 0.7 : eloDiff > 0 ? 0.85 : eloDiff > -200 ? 1.0 : 1.2
@@ -295,11 +308,13 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
 
       <div className="flex flex-1 flex-col items-center justify-center">
         {lockedProblemRef.current && (
-          <ProblemDisplay
-            problem={lockedProblemRef.current}
-            index={lockedIndexRef.current}
-            feedback={feedback}
-          />
+          <div className="w-full flex justify-center">
+            <ProblemDisplay
+              problem={lockedProblemRef.current}
+              index={lockedIndexRef.current}
+              feedback={feedback}
+            />
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-10 w-full max-w-xs">

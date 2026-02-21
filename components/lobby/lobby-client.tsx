@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PlayerStats } from './player-stats'
-import { Globe, Bot, UserPlus, X } from 'lucide-react'
+import { Globe, Bot, UserPlus, X, Flame } from 'lucide-react'
 import type { GameMode } from '@/lib/game/math-generator'
 import { MODE_LABELS, GAME_MODES } from '@/lib/game/types'
 import { cn } from '@/lib/utils'
@@ -28,6 +28,56 @@ interface LobbyClientProps {
   isGuest?: boolean
 }
 
+function calculateStreak(matchDates: string[]): number {
+  if (matchDates.length === 0) return 0
+  
+  // Get unique dates (one per day)
+  const uniqueDates = new Set<string>()
+  matchDates.forEach(dateStr => {
+    const date = new Date(dateStr)
+    date.setHours(0, 0, 0, 0)
+    uniqueDates.add(date.toISOString())
+  })
+  
+  // Sort dates descending (most recent first)
+  const sortedDates = Array.from(uniqueDates)
+    .map(d => new Date(d))
+    .sort((a, b) => b.getTime() - a.getTime())
+  
+  if (sortedDates.length === 0) return 0
+  
+  // Check if most recent match was today or yesterday
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  
+  const mostRecent = sortedDates[0]
+  mostRecent.setHours(0, 0, 0, 0)
+  
+  // If most recent match wasn't today or yesterday, streak is 0
+  if (mostRecent.getTime() !== today.getTime() && mostRecent.getTime() !== yesterday.getTime()) {
+    return 0
+  }
+  
+  // Count consecutive days
+  let streak = 0
+  let checkDate = new Date(mostRecent)
+  
+  for (const matchDate of sortedDates) {
+    matchDate.setHours(0, 0, 0, 0)
+    if (matchDate.getTime() === checkDate.getTime()) {
+      streak++
+      checkDate.setDate(checkDate.getDate() - 1)
+    } else if (matchDate.getTime() < checkDate.getTime()) {
+      // Gap found, streak broken
+      break
+    }
+  }
+  
+  return streak
+}
+
 export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   const router = useRouter()
   const [selectedMode, setSelectedMode] = useState<GameMode>('all')
@@ -36,7 +86,29 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   const [challengeError, setChallengeError] = useState<string | null>(null)
   const [outgoing, setOutgoing] = useState<OutgoingChallenge | null>(null)
   const [showFriendInput, setShowFriendInput] = useState(false)
+  const [streak, setStreak] = useState(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  
+  useEffect(() => {
+    if (isGuest) return
+    
+    async function fetchStreak() {
+      const supabase = createClient()
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('completed_at')
+        .eq('status', 'completed')
+        .or(`player1_id.eq.${profile.id},player2_id.eq.${profile.id}`)
+        .not('completed_at', 'is', null)
+      
+      if (matches) {
+        const matchDates = matches.map(m => m.completed_at).filter(Boolean) as string[]
+        setStreak(calculateStreak(matchDates))
+      }
+    }
+    
+    fetchStreak()
+  }, [profile.id, isGuest])
 
   function handlePlayOnline() {
     if (isGuest) {
@@ -165,13 +237,29 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 lg:py-16">
-      <div className="mb-10">
-        <h1 className="text-3xl font-medium tracking-tight text-foreground">
-          {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          1v1 probability duels - 120 seconds
-        </p>
+      <div className="mb-10 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-medium tracking-tight text-foreground">
+            {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            1v1 probability duels - 120 seconds
+          </p>
+        </div>
+        {!isGuest && (
+          <div className="flex items-center gap-4">
+            {streak > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Flame className="h-5 w-5 text-orange-500" />
+                <span className="font-mono text-sm font-medium text-foreground">{streak}</span>
+              </div>
+            )}
+            <div className="flex flex-col items-end">
+              <span className="text-xs text-muted-foreground">ELO</span>
+              <span className="font-mono text-lg font-medium text-foreground">{profile.eloProbability}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Category Selector */}
