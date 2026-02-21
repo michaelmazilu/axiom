@@ -15,7 +15,7 @@ export function PlayerStats({ profile, className }: PlayerStatsProps) {
   const winRate = totalGames > 0 ? Math.round((profile.totalWins / totalGames) * 100) : 0
 
   const stats = [
-    { label: 'Elo', value: profile.eloProbability.toString() },
+    { label: 'ELO', value: profile.eloProbability.toString() },
     { label: 'W / L / D', value: `${profile.totalWins} / ${profile.totalLosses} / ${profile.totalDraws}` },
     { label: 'Win rate', value: `${winRate}%` },
     { label: 'Matches', value: totalGames.toString() },

@@ -1,4 +1,5 @@
 import { BotMatchClient } from '@/components/match/bot-match-client'
+import { createClient } from '@/lib/supabase/server'
 import type { GameMode } from '@/lib/game/math-generator'
 
 export const metadata = {
@@ -17,5 +18,20 @@ export default async function BotMatchPage({
     ? (mode as GameMode)
     : 'all'
 
-  return <BotMatchClient mode={gameMode} />
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  let userElo = 1200
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('elo_probability')
+      .eq('id', user.id)
+      .single()
+    userElo = profile?.elo_probability ?? 1200
+  }
+
+  return <BotMatchClient mode={gameMode} userElo={userElo} />
 }

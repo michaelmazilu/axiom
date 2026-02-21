@@ -46,7 +46,11 @@ export function BotMatchResults({ myScore, botScore, mode }: BotMatchResultsProp
         </div>
 
         <div className="flex flex-col items-center">
-          <span className="text-xs text-muted-foreground">Axiom Bot</span>
+          <span className="text-xs text-muted-foreground">
+            {typeof window !== 'undefined' && localStorage.getItem('botNumber')
+              ? `Axiom Bot ${localStorage.getItem('botNumber')}`
+              : 'Axiom Bot'}
+          </span>
           <span className="mt-1 font-mono text-3xl font-medium text-foreground">
             {botScore}
           </span>
@@ -60,6 +64,10 @@ export function BotMatchResults({ myScore, botScore, mode }: BotMatchResultsProp
       <div className="mt-10 flex items-center gap-4">
         <Link
           href={`/match/bot?mode=${mode}`}
+          onClick={(e) => {
+            e.preventDefault()
+            window.location.href = `/match/bot?mode=${mode}`
+          }}
           className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Play again

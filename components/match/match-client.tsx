@@ -381,9 +381,6 @@ export function MatchClient({
   if (phase === 'countdown') {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
-        <div className="mb-4 text-sm text-muted-foreground uppercase tracking-widest">
-          Get ready
-        </div>
         <div className="font-mono text-7xl font-medium text-foreground">
           {countdown}
         </div>

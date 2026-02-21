@@ -29,7 +29,7 @@ export function LeaderboardClient({
           Leaderboard
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Top players ranked by Elo rating
+          Top players ranked by ELO rating
         </p>
       </div>
 
@@ -39,7 +39,7 @@ export function LeaderboardClient({
         <div className="flex items-center border-b border-border px-5 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           <span className="w-12">#</span>
           <span className="flex-1">Player</span>
-          <span className="w-20 text-right">Elo</span>
+          <span className="w-20 text-right">ELO</span>
           <span className="w-20 text-right">W/L</span>
         </div>
 

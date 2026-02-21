@@ -13,9 +13,10 @@ type MatchPhase = 'countdown' | 'playing' | 'finished'
 
 interface BotMatchClientProps {
   mode: GameMode
+  userElo?: number
 }
 
-export function BotMatchClient({ mode }: BotMatchClientProps) {
+export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
   const [phase, setPhase] = useState<MatchPhase>('countdown')
   const [countdown, setCountdown] = useState(COUNTDOWN_DURATION)
   const [timeRemaining, setTimeRemaining] = useState(MATCH_DURATION)
@@ -27,6 +28,8 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null)
   const [finished, setFinished] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [botName, setBotName] = useState('Axiom Bot 1')
+  const [botElo, setBotElo] = useState(800)
 
   const seedRef = useRef(crypto.randomUUID())
   const problemsRef = useRef<MathProblem[]>([])
@@ -37,6 +40,9 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
   const botIndexRef = useRef(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const botScoreRef = useRef(0)
+  const botNumberRef = useRef(1)
+  const lastEloChangeRef = useRef(0)
+  const eloChangeCountRef = useRef(0)
 
   useEffect(() => {
     const problems = generateProblems(seedRef.current, mode, 50)
@@ -48,13 +54,36 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
       setCurrentProblem(problems[0])
       setCurrentProblemIndex(0)
     }
-  }, [mode])
+    
+    // Initialize bot name and ELO
+    if (typeof window !== 'undefined') {
+      const storedBotNumber = localStorage.getItem('botNumber')
+      if (storedBotNumber) {
+        const num = parseInt(storedBotNumber, 10)
+        botNumberRef.current = num
+        setBotName(`Axiom Bot ${num}`)
+      } else {
+        botNumberRef.current = 1
+        setBotName('Axiom Bot 1')
+        localStorage.setItem('botNumber', '1')
+      }
+    }
+    
+    // Bot ELO starts at 800
+    setBotElo(800)
+  }, [mode, userElo])
 
   const finishGame = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     if (botTimerRef.current) clearTimeout(botTimerRef.current)
     setPhase('finished')
     setFinished(true)
+    
+    // Increment bot number for next match
+    if (typeof window !== 'undefined') {
+      botNumberRef.current += 1
+      localStorage.setItem('botNumber', botNumberRef.current.toString())
+    }
   }, [])
 
   useEffect(() => {
@@ -112,22 +141,44 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
     const problem = problemsRef.current[botIndexRef.current]
     if (!problem) return
 
-    const baseDuration = problem.difficulty <= 2 ? 3000 : problem.difficulty <= 4 ? 6000 : 9000
-    const jitter = (Math.random() - 0.5) * 2000
-    const delay = baseDuration + jitter
+    // Change bot ELO at least 2 times during the match, at random intervals
+    const currentTime = Date.now()
+    const timeSinceLastChange = lastEloChangeRef.current === 0 ? Infinity : currentTime - lastEloChangeRef.current
+    const shouldChange = eloChangeCountRef.current < 2 
+      ? timeSinceLastChange > 20000 // Force change if less than 2 changes
+      : timeSinceLastChange > 30000 && Math.random() < 0.15 // Random changes after 2
+    
+    if (shouldChange) {
+      const roundedUserElo = Math.round(userElo / 100) * 100
+      setBotElo(roundedUserElo)
+      lastEloChangeRef.current = currentTime
+      eloChangeCountRef.current += 1
+    }
 
-    const accuracy = problem.difficulty <= 2 ? 0.85 : problem.difficulty <= 4 ? 0.65 : 0.45
+    // Bot performance based on ELO difference
+    const eloDiff = botElo - userElo
+    const baseAccuracy = eloDiff > 200 ? 0.9 : eloDiff > 0 ? 0.75 : eloDiff > -200 ? 0.6 : 0.4
+    const adjustedAccuracy = baseAccuracy - (problem.difficulty - 3) * 0.1
+    
+    const baseDuration = problem.difficulty <= 2 ? 3000 : problem.difficulty <= 4 ? 6000 : 9000
+    const eloMultiplier = eloDiff > 200 ? 0.7 : eloDiff > 0 ? 0.85 : eloDiff > -200 ? 1.0 : 1.2
+    const jitter = (Math.random() - 0.5) * 2000
+    const delay = baseDuration * eloMultiplier + jitter
 
     botTimerRef.current = setTimeout(() => {
-      if (Math.random() < accuracy) {
-        const pts = problem.difficulty
+      if (Math.random() < adjustedAccuracy) {
+        // Score based on ELO - higher ELO bots score more consistently
+        const basePts = problem.difficulty
+        // Add randomization: ±1 point variation
+        const scoreVariation = Math.floor(Math.random() * 3) - 1 // -1, 0, or +1
+        const pts = Math.max(1, basePts + scoreVariation)
         botScoreRef.current += pts
         setBotScore(botScoreRef.current)
       }
       botIndexRef.current += 1
       scheduleBotSolve()
     }, delay)
-  }, [])
+  }, [botElo, userElo])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -206,15 +257,10 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
     }
   }
 
+
   if (phase === 'countdown') {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
-        <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">
-          {MODE_LABELS[mode]}
-        </div>
-        <div className="mb-4 text-sm uppercase tracking-widest text-muted-foreground">
-          Get ready
-        </div>
         <div className="font-mono text-7xl font-medium text-foreground">
           {countdown}
         </div>
@@ -224,8 +270,8 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
           </div>
           <div className="h-8 w-px bg-border" />
           <div className="text-left">
-            <p className="text-sm font-medium text-foreground">Axiom Bot</p>
-            <p className="font-mono text-xs text-muted-foreground">1200</p>
+            <p className="text-sm font-medium text-foreground">{botName}</p>
+            <p className="font-mono text-xs text-muted-foreground">{botElo}</p>
           </div>
         </div>
       </div>
@@ -241,7 +287,10 @@ export function BotMatchClient({ mode }: BotMatchClientProps) {
       <div className="mb-8 flex items-center justify-between">
         <ScoreBar name="You" score={myScore} align="left" isMe />
         <GameTimer timeRemaining={timeRemaining} />
-        <ScoreBar name="Axiom Bot" score={botScore} align="right" />
+        <div className="flex flex-col items-end">
+          <ScoreBar name={botName} score={botScore} align="right" />
+          <span className="mt-1 font-mono text-xs text-muted-foreground">{botElo}</span>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center">

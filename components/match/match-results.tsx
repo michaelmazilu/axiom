@@ -65,7 +65,7 @@ export function MatchResults({ result, currentUserId }: MatchResultsProps) {
         </div>
       </div>
 
-      {/* Elo changes */}
+      {/* ELO changes */}
       <div className="mt-6 flex w-full items-center justify-between rounded-lg border border-border bg-card px-8 py-4">
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground">Your rating</span>
@@ -114,6 +114,10 @@ export function MatchResults({ result, currentUserId }: MatchResultsProps) {
       <div className="mt-10 flex items-center gap-4">
         <Link
           href="/lobby"
+          onClick={(e) => {
+            e.preventDefault()
+            window.location.href = '/lobby'
+          }}
           className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Play again

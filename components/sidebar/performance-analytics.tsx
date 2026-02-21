@@ -270,7 +270,7 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                       </linearGradient>
                     </defs>
                     <Area
-                      type="basis"
+                      type="linear"
                       dataKey="value"
                       stroke="none"
                       fill={`url(#accuracyGradient-${userId}-${variant})`}
@@ -322,7 +322,7 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                       </linearGradient>
                     </defs>
                     <Area
-                      type="basis"
+                      type="linear"
                       dataKey="value"
                       stroke="none"
                       fill={`url(#speedGradient-${userId}-${variant})`}

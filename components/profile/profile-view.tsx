@@ -59,10 +59,10 @@ export function ProfileView({
         </div>
       </div>
 
-      {/* Elo rating */}
+      {/* ELO rating */}
       <div className="mb-8">
         <div className="rounded-lg border border-border bg-card px-5 py-4">
-          <span className="text-xs text-muted-foreground">Probability Elo</span>
+          <span className="text-xs text-muted-foreground">Probability ELO</span>
           <div className="mt-1 font-mono text-2xl font-medium text-foreground">
             {profile.eloProbability}
           </div>
