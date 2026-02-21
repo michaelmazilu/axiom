@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PlayerStats } from './player-stats'
+import { Globe, Bot, UserPlus, X } from 'lucide-react'
 
 interface ProfileData {
   id: string
@@ -30,9 +31,10 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   const [challengeLoading, setChallengeLoading] = useState(false)
   const [challengeError, setChallengeError] = useState<string | null>(null)
   const [outgoing, setOutgoing] = useState<OutgoingChallenge | null>(null)
+  const [showFriendInput, setShowFriendInput] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  function handlePlay() {
+  function handlePlayOnline() {
     if (isGuest) {
       router.push('/auth/sign-up')
       return
@@ -40,14 +42,20 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
     router.push('/queue')
   }
 
-  async function handleChallenge(e: React.FormEvent) {
-    e.preventDefault()
+  function handlePlayBot() {
+    router.push('/match/bot')
+  }
 
+  function handlePlayFriend() {
     if (isGuest) {
       router.push('/auth/sign-up')
       return
     }
+    setShowFriendInput(true)
+  }
 
+  async function handleChallenge(e: React.FormEvent) {
+    e.preventDefault()
     if (!friendName.trim()) return
 
     setChallengeError(null)
@@ -124,102 +132,129 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
     }
   }, [])
 
+  const playModes = [
+    {
+      icon: Globe,
+      title: 'Play Online',
+      description: 'Find a random opponent',
+      onClick: handlePlayOnline,
+      accent: 'group-hover:text-scholar-success',
+      bg: 'group-hover:bg-scholar-success/10',
+    },
+    {
+      icon: Bot,
+      title: 'Play vs Bot',
+      description: 'Practice against AI',
+      onClick: handlePlayBot,
+      accent: 'group-hover:text-blue-400',
+      bg: 'group-hover:bg-blue-400/10',
+    },
+    {
+      icon: UserPlus,
+      title: 'Play a Friend',
+      description: 'Challenge by username',
+      onClick: handlePlayFriend,
+      accent: 'group-hover:text-scholar-vermillion',
+      bg: 'group-hover:bg-scholar-vermillion/10',
+    },
+  ]
+
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 lg:py-16">
-      {/* Greeting */}
-      <div className="mb-12">
-        <h1 className="text-2xl font-medium tracking-tight text-foreground">
+    <div className="mx-auto max-w-3xl px-6 py-12 lg:py-16">
+      <div className="mb-10">
+        <h1 className="text-3xl font-medium tracking-tight text-foreground">
           {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
         </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {isGuest
-            ? 'Create an account to start competing in 1v1 probability duels'
-            : '1v1 probability duels — find a match and prove your skill'}
+        <p className="mt-2 text-sm text-muted-foreground">
+          1v1 probability duels — 120 seconds, speed and precision
         </p>
       </div>
 
-      {/* Stats summary — only for logged-in users */}
-      {!isGuest && <PlayerStats profile={profile} className="mb-12" />}
-
-      {/* Actions */}
-      <div className="flex flex-col items-center gap-8">
-        {/* Find match */}
-        <button
-          onClick={handlePlay}
-          className="h-14 w-full max-w-sm rounded-md bg-primary text-base font-medium text-primary-foreground transition-all hover:bg-primary/90"
-        >
-          {isGuest ? 'Sign up to play' : 'Find match'}
-        </button>
-
-        {/* Divider */}
-        <div className="flex w-full max-w-sm items-center gap-4">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">or</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        {/* Play a friend */}
-        {outgoing ? (
-          <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-border bg-card p-6">
-            <p className="text-sm text-foreground">
-              Waiting for <span className="font-medium">{outgoing.opponentName}</span> to accept...
-            </p>
-            <div className="mt-4 flex items-center gap-2">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
-                  style={{
-                    animation: 'challengePulse 1.4s ease-in-out infinite',
-                    animationDelay: `${i * 0.2}s`,
-                  }}
-                />
-              ))}
-            </div>
+      {/* Play Mode Cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {playModes.map((mode) => {
+          const Icon = mode.icon
+          return (
             <button
-              onClick={handleCancelChallenge}
-              className="mt-5 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+              key={mode.title}
+              onClick={mode.onClick}
+              className={`group flex flex-col items-center rounded-xl border border-border bg-card px-6 py-8 text-center transition-all hover:border-foreground/20 hover:shadow-sm ${mode.bg}`}
             >
-              Cancel
+              <div className={`mb-4 rounded-full border border-border p-3 transition-colors ${mode.bg}`}>
+                <Icon className={`h-6 w-6 text-muted-foreground transition-colors ${mode.accent}`} />
+              </div>
+              <span className="text-sm font-medium text-foreground">
+                {mode.title}
+              </span>
+              <span className="mt-1 text-xs text-muted-foreground">
+                {mode.description}
+              </span>
             </button>
-
-            <style jsx>{`
-              @keyframes challengePulse {
-                0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-                40% { opacity: 1; transform: scale(1); }
-              }
-            `}</style>
-          </div>
-        ) : (
-          <form onSubmit={handleChallenge} className="flex w-full max-w-sm flex-col gap-3">
-            <label className="text-sm font-medium text-muted-foreground">
-              Play a friend
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={friendName}
-                onChange={(e) => {
-                  setFriendName(e.target.value)
-                  setChallengeError(null)
-                }}
-                placeholder="Enter username"
-                className="h-11 flex-1 rounded-md border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-              />
-              <button
-                type="submit"
-                disabled={challengeLoading || (!isGuest && !friendName.trim())}
-                className="h-11 rounded-md border border-border bg-card px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {challengeLoading ? 'Sending...' : 'Challenge'}
-              </button>
-            </div>
-            {challengeError && (
-              <p className="text-sm text-destructive">{challengeError}</p>
-            )}
-          </form>
-        )}
+          )
+        })}
       </div>
+
+      {/* Challenge a Friend — inline section */}
+      {showFriendInput && !outgoing && (
+        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">Challenge a friend</span>
+            <button
+              onClick={() => { setShowFriendInput(false); setChallengeError(null) }}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <form onSubmit={handleChallenge} className="flex gap-2">
+            <input
+              type="text"
+              value={friendName}
+              onChange={(e) => { setFriendName(e.target.value); setChallengeError(null) }}
+              placeholder="Enter username"
+              autoFocus
+              className="h-11 flex-1 rounded-md border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+            />
+            <button
+              type="submit"
+              disabled={challengeLoading || !friendName.trim()}
+              className="h-11 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {challengeLoading ? 'Sending...' : 'Challenge'}
+            </button>
+          </form>
+          {challengeError && (
+            <p className="mt-3 text-sm text-destructive">{challengeError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Outgoing challenge waiting state */}
+      {outgoing && (
+        <div className="mt-6 flex flex-col items-center rounded-xl border border-border bg-card p-8">
+          <p className="text-sm text-foreground">
+            Waiting for <span className="font-medium">{outgoing.opponentName}</span> to accept...
+          </p>
+          <div className="mt-4 flex items-center gap-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground"
+                style={{ animationDelay: `${i * 200}ms` }}
+              />
+            ))}
+          </div>
+          <button
+            onClick={handleCancelChallenge}
+            className="mt-5 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Player stats */}
+      {!isGuest && <PlayerStats profile={profile} className="mt-10" />}
     </div>
   )
 }

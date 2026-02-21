@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { AppNav } from '@/components/app-nav'
+import { Sidebar } from '@/components/sidebar'
 import { ChallengeListener } from '@/components/lobby/challenge-listener'
 
 export default async function AppLayout({
@@ -23,19 +23,18 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
-      <AppNav
+    <div className="flex h-svh bg-background">
+      <Sidebar
         user={
           user
             ? {
                 id: user.id,
-                email: user.email ?? '',
                 displayName: profile?.display_name ?? 'Player',
               }
             : null
         }
       />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 overflow-y-auto">{children}</main>
       {user && <ChallengeListener userId={user.id} />}
     </div>
   )
