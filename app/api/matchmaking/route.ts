@@ -117,20 +117,30 @@ export async function POST(request: NextRequest) {
   }
 
   // No opponent found — join the queue
+  const insertPayload = {
+    user_id: user.id,
+    mode,
+    elo: playerElo,
+    status: 'waiting',
+  }
+
   const { data: queueEntry, error: queueError } = await supabase
     .from('matchmaking_queue')
-    .insert({
-      user_id: user.id,
-      mode,
-      elo: playerElo,
-      status: 'waiting',
-    })
+    .insert(insertPayload)
     .select()
     .single()
 
   if (queueError) {
     return NextResponse.json(
-      { error: 'Failed to join queue: ' + queueError.message },
+      {
+        error: 'Failed to join queue: ' + queueError.message,
+        debug: {
+          insertPayload,
+          errorCode: queueError.code,
+          errorDetails: queueError.details,
+          errorHint: queueError.hint,
+        },
+      },
       { status: 500 }
     )
   }

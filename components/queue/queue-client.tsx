@@ -33,7 +33,8 @@ export function QueueClient({ mode }: QueueClientProps) {
       const data = await res.json()
 
       if (!res.ok) {
-        setErrorMsg(data.error || 'Server error')
+        const debugInfo = data.debug ? `\n[mode=${data.debug?.insertPayload?.mode}, code=${data.debug?.errorCode}]` : ''
+        setErrorMsg((data.error || 'Server error') + debugInfo)
         setStatus('error')
         return
       }
