@@ -1,0 +1,153 @@
+import { cn } from '@/lib/utils'
+
+interface ProfileData {
+  id: string
+  displayName: string
+  eloProbability: number
+  totalWins: number
+  totalLosses: number
+  totalDraws: number
+  createdAt: string
+}
+
+interface MatchData {
+  id: string
+  player1Id: string
+  player2Id: string
+  player1Score: number
+  player2Score: number
+  winnerId: string | null
+  completedAt: string | null
+}
+
+interface ProfileViewProps {
+  profile: ProfileData
+  matches: MatchData[]
+  isOwnProfile: boolean
+  viewingUserId: string
+}
+
+export function ProfileView({
+  profile,
+  matches,
+  isOwnProfile,
+  viewingUserId,
+}: ProfileViewProps) {
+  const totalGames = profile.totalWins + profile.totalLosses + profile.totalDraws
+  const winRate = totalGames > 0 ? Math.round((profile.totalWins / totalGames) * 100) : 0
+
+  const joinDate = new Date(profile.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+  })
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-12 lg:py-16">
+      {/* Header */}
+      <div className="mb-10 flex items-center gap-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-xl font-medium text-foreground">
+          {profile.displayName.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <h1 className="text-2xl font-medium tracking-tight text-foreground">
+            {profile.displayName}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Joined {joinDate}
+            {isOwnProfile && ' (you)'}
+          </p>
+        </div>
+      </div>
+
+      {/* Elo rating */}
+      <div className="mb-8">
+        <div className="rounded-lg border border-border bg-card px-5 py-4">
+          <span className="text-xs text-muted-foreground">Probability Elo</span>
+          <div className="mt-1 font-mono text-2xl font-medium text-foreground">
+            {profile.eloProbability}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="mb-12 grid grid-cols-4 gap-4">
+        {[
+          { label: 'Wins', value: profile.totalWins },
+          { label: 'Losses', value: profile.totalLosses },
+          { label: 'Draws', value: profile.totalDraws },
+          { label: 'Win rate', value: `${winRate}%` },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="flex flex-col rounded-lg border border-border bg-card px-4 py-3"
+          >
+            <span className="text-xs text-muted-foreground">{stat.label}</span>
+            <span className="mt-1 font-mono text-lg font-medium text-foreground">
+              {stat.value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Match history */}
+      <div>
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-muted-foreground">
+          Recent matches
+        </h2>
+
+        {matches.length === 0 && (
+          <div className="rounded-lg border border-border bg-card px-5 py-12 text-center text-sm text-muted-foreground">
+            No matches played yet.
+          </div>
+        )}
+
+        <div className="flex flex-col rounded-lg border border-border bg-card">
+          {matches.map((match, index) => {
+            const isPlayer1 = match.player1Id === viewingUserId
+            const myScore = isPlayer1 ? match.player1Score : match.player2Score
+            const oppScore = isPlayer1 ? match.player2Score : match.player1Score
+            const won = match.winnerId === viewingUserId
+            const draw = match.winnerId === null
+            const lost = !won && !draw
+
+            return (
+              <div
+                key={match.id}
+                className={cn(
+                  'flex items-center justify-between px-5 py-3',
+                  index < matches.length - 1 && 'border-b border-border'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      'w-12 text-xs font-medium',
+                      won && 'text-scholar-success',
+                      lost && 'text-scholar-vermillion',
+                      draw && 'text-scholar-stone'
+                    )}
+                  >
+                    {won ? 'WIN' : lost ? 'LOSS' : 'DRAW'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Probability
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-sm text-foreground">
+                    {myScore} - {oppScore}
+                  </span>
+                  {match.completedAt && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(match.completedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
