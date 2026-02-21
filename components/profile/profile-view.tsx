@@ -42,9 +42,9 @@ export function ProfileView({
   })
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 lg:py-16">
+    <div className="mx-auto max-w-4xl px-10 py-16 lg:py-20">
       {/* Header */}
-      <div className="mb-10 flex items-center gap-4">
+      <div className="mb-12 flex items-center gap-4">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-xl font-medium text-foreground">
           {profile.displayName.charAt(0).toUpperCase()}
         </div>
@@ -60,8 +60,8 @@ export function ProfileView({
       </div>
 
       {/* ELO rating */}
-      <div className="mb-8">
-        <div className="rounded-lg border border-border bg-card px-5 py-4">
+      <div className="mb-12">
+        <div className="rounded-lg border border-border bg-card px-6 py-5">
           <span className="text-xs text-muted-foreground">Probability ELO</span>
           <div className="mt-1 font-mono text-2xl font-medium text-foreground">
             {profile.eloProbability}
@@ -71,7 +71,7 @@ export function ProfileView({
 
       {/* Match history */}
       <div>
-        <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-muted-foreground">
+        <h2 className="mb-6 text-sm font-medium uppercase tracking-widest text-muted-foreground">
           Recent matches
         </h2>
 

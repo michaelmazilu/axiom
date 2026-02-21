@@ -235,13 +235,13 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   ]
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 lg:py-16">
-      <div className="mb-10 flex items-start justify-between">
+    <div className="mx-auto max-w-5xl px-12 py-20 lg:py-24">
+      <div className="mb-16 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-medium tracking-tight text-foreground">
+          <h1 className="text-4xl font-medium tracking-tight text-foreground">
             {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-3 text-base text-muted-foreground">
             1v1 probability duels - 120 seconds
           </p>
         </div>
@@ -260,13 +260,13 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
       </div>
 
       {/* Category Selector */}
-      <div className="mb-8 flex flex-wrap gap-3">
+      <div className="mb-10 flex flex-wrap gap-4">
         {GAME_MODES.map((mode) => (
           <button
             key={mode}
             onClick={() => setSelectedMode(mode)}
             className={cn(
-              'px-5 py-2.5 text-sm font-medium transition-all border rounded-md',
+              'px-6 py-3 text-base font-medium transition-all border rounded-md',
               selectedMode === mode
                 ? 'bg-foreground text-background border-foreground shadow-sm'
                 : 'bg-background text-muted-foreground border-border hover:border-foreground/50 hover:text-foreground'
@@ -278,22 +278,22 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
       </div>
 
       {/* Play Mode Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-3">
         {playModes.map((mode) => {
           const Icon = mode.icon
           return (
             <button
               key={mode.title}
               onClick={mode.onClick}
-              className={`group flex flex-col items-center rounded-xl border border-border bg-card px-6 py-8 text-center transition-all hover:border-foreground/20 hover:shadow-sm ${mode.bg}`}
+              className={`group flex flex-col items-center rounded-xl border border-border bg-card px-10 py-12 text-center transition-all hover:border-foreground/20 hover:shadow-sm ${mode.bg}`}
             >
-              <div className={`mb-4 rounded-full border border-border p-3 transition-colors ${mode.bg}`}>
-                <Icon className={`h-6 w-6 text-muted-foreground transition-colors ${mode.accent}`} />
+              <div className={`mb-5 rounded-full border border-border p-4 transition-colors ${mode.bg}`}>
+                <Icon className={`h-7 w-7 text-muted-foreground transition-colors ${mode.accent}`} />
               </div>
-              <span className="text-sm font-medium text-foreground">
+              <span className="text-base font-medium text-foreground">
                 {mode.title}
               </span>
-              <span className="mt-1 text-xs text-muted-foreground">
+              <span className="mt-2 text-sm text-muted-foreground">
                 {mode.description}
               </span>
             </button>
@@ -303,7 +303,7 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
 
       {/* Challenge a Friend — inline section */}
       {showFriendInput && !outgoing && (
-        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+        <div className="mt-8 rounded-xl border border-border bg-card p-8">
           <div className="mb-4 flex items-center justify-between">
             <span className="text-sm font-medium text-foreground">Challenge a friend</span>
             <button
@@ -338,7 +338,7 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
 
       {/* Outgoing challenge waiting state */}
       {outgoing && (
-        <div className="mt-6 flex flex-col items-center rounded-xl border border-border bg-card p-8">
+        <div className="mt-8 flex flex-col items-center rounded-xl border border-border bg-card p-10">
           <p className="text-sm text-foreground">
             Waiting for <span className="font-medium">{outgoing.opponentName}</span> to accept...
           </p>

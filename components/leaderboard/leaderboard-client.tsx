@@ -23,8 +23,8 @@ export function LeaderboardClient({
   const sorted = [...profiles].sort((a, b) => b.eloProbability - a.eloProbability)
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 lg:py-16">
-      <div className="mb-10">
+    <div className="mx-auto max-w-4xl px-10 py-16 lg:py-20">
+      <div className="mb-12">
         <h1 className="text-2xl font-medium tracking-tight text-foreground">
           Leaderboard
         </h1>

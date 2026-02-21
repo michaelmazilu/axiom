@@ -16,8 +16,8 @@ interface StatsClientProps {
 export function StatsClient({ user }: StatsClientProps) {
   if (!user) {
     return (
-      <div className="container mx-auto max-w-4xl px-4 py-8">
-        <div className="mb-8">
+      <div className="container mx-auto max-w-5xl px-10 py-12">
+        <div className="mb-10">
           <h1 className="text-3xl font-bold tracking-tight">Performance Analytics</h1>
           <p className="text-muted-foreground mt-2">
             Track your performance, accuracy, and improvement over time
@@ -58,15 +58,15 @@ export function StatsClient({ user }: StatsClientProps) {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-8">
+    <div className="container mx-auto max-w-5xl px-10 py-12">
+      <div className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight">Performance Analytics</h1>
         <p className="text-muted-foreground mt-2">
           Track your performance, accuracy, and improvement over time
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Your Performance</CardTitle>
