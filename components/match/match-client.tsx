@@ -6,6 +6,7 @@ import { generateProblems } from '@/lib/game/math-generator'
 import type { GameMode, MathProblem } from '@/lib/game/math-generator'
 import { MATCH_DURATION, COUNTDOWN_DURATION } from '@/lib/game/types'
 import type { MatchResult, GameEvent } from '@/lib/game/types'
+import { calculateElo } from '@/lib/game/elo'
 import { GameTimer } from './game-timer'
 import { ProblemDisplay } from './problem-display'
 import { ScoreBar } from './score-bar'
@@ -60,6 +61,7 @@ export function MatchClient({
   const channelRef = useRef<RealtimeChannel | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const eloUpdatedRef = useRef(false)
 
   useEffect(() => {
     const problems = generateProblems(seed, mode, 50)
@@ -86,6 +88,16 @@ export function MatchClient({
       winnerId = opponent.id
     }
 
+    const myElo = me.elo
+    const oppElo = opponent.elo
+    const scoreA = winnerId === currentUserId ? 1 : winnerId === null ? 0.5 : 0
+    const eloResult = calculateElo(myElo, oppElo, scoreA)
+
+    const myNewElo = eloResult.newRatingA
+    const oppNewElo = eloResult.newRatingB
+    const myDelta = eloResult.deltaA
+    const oppDelta = eloResult.deltaB
+
     const matchResult: MatchResult = {
       matchId,
       mode,
@@ -95,16 +107,16 @@ export function MatchClient({
         displayName: player1.displayName,
         score: isPlayer1 ? finalMyScore : finalOpponentScore,
         eloBefore: player1.elo,
-        eloAfter: player1.elo,
-        delta: 0,
+        eloAfter: isPlayer1 ? myNewElo : oppNewElo,
+        delta: isPlayer1 ? myDelta : oppDelta,
       },
       player2: {
         id: player2.id,
         displayName: player2.displayName,
         score: isPlayer1 ? finalOpponentScore : finalMyScore,
         eloBefore: player2.elo,
-        eloAfter: player2.elo,
-        delta: 0,
+        eloAfter: isPlayer1 ? oppNewElo : myNewElo,
+        delta: isPlayer1 ? oppDelta : myDelta,
       },
     }
 
@@ -118,11 +130,6 @@ export function MatchClient({
 
     try {
       const supabase = createClient()
-      const { calculateElo } = await import('@/lib/game/elo')
-      const myElo = me.elo
-      const oppElo = opponent.elo
-      const scoreA = winnerId === currentUserId ? 1 : winnerId === null ? 0.5 : 0
-      const eloResult = calculateElo(myElo, oppElo, scoreA)
 
       await supabase
         .from('matches')
@@ -130,38 +137,20 @@ export function MatchClient({
           player1_score: isPlayer1 ? finalMyScore : finalOpponentScore,
           player2_score: isPlayer1 ? finalOpponentScore : finalMyScore,
           winner_id: winnerId,
-          player1_elo_after: isPlayer1 ? eloResult.newRatingA : eloResult.newRatingB,
-          player2_elo_after: isPlayer1 ? eloResult.newRatingB : eloResult.newRatingA,
+          player1_elo_after: isPlayer1 ? myNewElo : oppNewElo,
+          player2_elo_after: isPlayer1 ? oppNewElo : myNewElo,
           status: 'completed',
           completed_at: new Date().toISOString(),
         })
         .eq('id', matchId)
 
-      const newElo = isPlayer1 ? eloResult.newRatingA : eloResult.newRatingB
-      const myDelta = isPlayer1 ? eloResult.deltaA : eloResult.deltaB
-
-      await supabase
-        .from('profiles')
-        .update({ elo_probability: newElo })
-        .eq('id', currentUserId)
-
-      setResult((prev) => {
-        if (!prev) return prev
-        const p1Delta = isPlayer1 ? myDelta : -myDelta
-        return {
-          ...prev,
-          player1: {
-            ...prev.player1,
-            eloAfter: isPlayer1 ? eloResult.newRatingA : eloResult.newRatingB,
-            delta: p1Delta,
-          },
-          player2: {
-            ...prev.player2,
-            eloAfter: isPlayer1 ? eloResult.newRatingB : eloResult.newRatingA,
-            delta: -p1Delta,
-          },
-        }
-      })
+      if (!eloUpdatedRef.current) {
+        eloUpdatedRef.current = true
+        await supabase
+          .from('profiles')
+          .update({ elo_probability: myNewElo })
+          .eq('id', currentUserId)
+      }
     } catch {
       // Match continues even if DB update fails
     }
@@ -191,6 +180,20 @@ export function MatchClient({
           if (timerRef.current) clearInterval(timerRef.current)
           setPhase('finished')
           setResult(event.result)
+
+          if (!eloUpdatedRef.current) {
+            eloUpdatedRef.current = true
+            const myData = event.result.player1.id === currentUserId
+              ? event.result.player1
+              : event.result.player2
+            const supabase = createClient()
+            supabase
+              .from('profiles')
+              .update({ elo_probability: myData.eloAfter })
+              .eq('id', currentUserId)
+              .then(() => {})
+              .catch(() => {})
+          }
         }
       })
       .subscribe(async (status) => {

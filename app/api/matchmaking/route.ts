@@ -28,19 +28,23 @@ export async function POST(request: NextRequest) {
 
   const playerElo = (profile.elo_probability ?? 800) as number
 
-  // Check if already waiting in queue
-  const { data: existing } = await supabase
+  // Check if already matched (prevents race where polling overwrites a matched entry)
+  const { data: matched } = await supabase
     .from('matchmaking_queue')
     .select('*')
     .eq('user_id', user.id)
-    .eq('status', 'waiting')
+    .eq('status', 'matched')
     .maybeSingle()
 
-  if (existing) {
-    return NextResponse.json({ status: 'waiting', queueId: existing.id })
+  if (matched?.match_id) {
+    return NextResponse.json({
+      status: 'matched',
+      matchId: matched.match_id,
+    })
   }
 
-  // Look for an opponent in the queue
+  // Always search for opponents (don't short-circuit on existing waiting entry,
+  // otherwise two players who join simultaneously both get stuck waiting)
   const { data: opponents } = await supabase
     .from('matchmaking_queue')
     .select('*')
@@ -96,6 +100,13 @@ export async function POST(request: NextRequest) {
       .update({ status: 'matched', match_id: match.id })
       .eq('id', opponent.id)
 
+    // Clean up own waiting entries only (never delete matched entries)
+    await supabase
+      .from('matchmaking_queue')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('status', 'waiting')
+
     return NextResponse.json({
       status: 'matched',
       matchId: match.id,
@@ -108,11 +119,24 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // No opponent found — clean up old entries and join queue
+  // No opponent found — ensure we have a waiting entry
+  const { data: existing } = await supabase
+    .from('matchmaking_queue')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('status', 'waiting')
+    .maybeSingle()
+
+  if (existing) {
+    return NextResponse.json({ status: 'waiting', queueId: existing.id })
+  }
+
+  // Only delete stale waiting entries (preserve matched entries)
   await supabase
     .from('matchmaking_queue')
     .delete()
     .eq('user_id', user.id)
+    .eq('status', 'waiting')
 
   const { data: queueEntry, error: queueError } = await supabase
     .from('matchmaking_queue')
@@ -126,6 +150,21 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (queueError) {
+    // Could fail if we got matched between our check and insert (unique constraint)
+    const { data: raceMatched } = await supabase
+      .from('matchmaking_queue')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'matched')
+      .maybeSingle()
+
+    if (raceMatched?.match_id) {
+      return NextResponse.json({
+        status: 'matched',
+        matchId: raceMatched.match_id,
+      })
+    }
+
     return NextResponse.json(
       { error: 'Failed to join queue: ' + queueError.message },
       { status: 500 }
