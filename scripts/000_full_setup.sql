@@ -1,4 +1,4 @@
--- Full database setup for Axiom (Probability mode)
+-- Full database setup for Axiom
 -- Run this in your Supabase SQL editor for a fresh setup.
 
 -- 1. Profiles
@@ -44,7 +44,7 @@ CREATE TRIGGER on_auth_user_created
 -- 3. Matches
 CREATE TABLE IF NOT EXISTS public.matches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  mode TEXT NOT NULL DEFAULT 'probability' CHECK (mode IN ('probability')),
+  mode TEXT NOT NULL DEFAULT 'all' CHECK (mode IN ('combinatorics', 'discrete', 'conditional', 'all')),
   seed TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'completed')),
   player1_id UUID NOT NULL REFERENCES public.profiles(id),
@@ -69,7 +69,7 @@ CREATE POLICY "matches_update_players" ON public.matches FOR UPDATE USING (auth.
 CREATE TABLE IF NOT EXISTS public.matchmaking_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  mode TEXT NOT NULL DEFAULT 'probability' CHECK (mode IN ('probability')),
+  mode TEXT NOT NULL DEFAULT 'all' CHECK (mode IN ('combinatorics', 'discrete', 'conditional', 'all')),
   elo INTEGER NOT NULL,
   status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'matched')),
   match_id UUID REFERENCES public.matches(id),
@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS public.challenges (
   challenger_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   challenged_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   match_id UUID REFERENCES public.matches(id),
+  mode TEXT NOT NULL DEFAULT 'all' CHECK (mode IN ('combinatorics', 'discrete', 'conditional', 'all')),
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'expired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

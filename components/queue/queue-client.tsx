@@ -3,11 +3,16 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { MODE_LABEL } from '@/lib/game/types'
+import { MODE_LABELS } from '@/lib/game/types'
+import type { GameMode } from '@/lib/game/math-generator'
 
 type QueueStatus = 'joining' | 'waiting' | 'matched' | 'error'
 
-export function QueueClient() {
+interface QueueClientProps {
+  mode: GameMode
+}
+
+export function QueueClient({ mode }: QueueClientProps) {
   const router = useRouter()
   const [status, setStatus] = useState<QueueStatus>('joining')
   const [elapsed, setElapsed] = useState(0)
@@ -21,7 +26,7 @@ export function QueueClient() {
       const res = await fetch('/api/matchmaking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'probability' }),
+        body: JSON.stringify({ mode }),
       })
 
       const data = await res.json()
@@ -45,7 +50,7 @@ export function QueueClient() {
     } catch {
       setStatus('error')
     }
-  }, [router])
+  }, [router, mode])
 
   function startPolling() {
     pollRef.current = setInterval(async () => {
@@ -74,7 +79,7 @@ export function QueueClient() {
         const res = await fetch('/api/matchmaking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'probability' }),
+          body: JSON.stringify({ mode }),
         })
         const data = await res.json()
 
@@ -120,14 +125,12 @@ export function QueueClient() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
       <div className="flex flex-col items-center text-center">
-        {/* Mode label */}
         <div className="mb-8 inline-flex items-center rounded-full border border-border bg-secondary px-4 py-1.5">
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {MODE_LABEL}
+            {MODE_LABELS[mode]}
           </span>
         </div>
 
-        {/* Status */}
         {status === 'joining' && (
           <h1 className="text-xl font-medium text-foreground">
             Joining queue...

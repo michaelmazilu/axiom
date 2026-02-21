@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { generateProblems } from '@/lib/game/math-generator'
-import type { MathProblem } from '@/lib/game/math-generator'
-import { MATCH_DURATION, COUNTDOWN_DURATION } from '@/lib/game/types'
+import type { GameMode, MathProblem } from '@/lib/game/math-generator'
+import { MATCH_DURATION, COUNTDOWN_DURATION, MODE_LABELS } from '@/lib/game/types'
 import { GameTimer } from './game-timer'
 import { ProblemDisplay } from './problem-display'
 import { ScoreBar } from './score-bar'
@@ -11,7 +11,11 @@ import { BotMatchResults } from './bot-match-results'
 
 type MatchPhase = 'countdown' | 'playing' | 'finished'
 
-export function BotMatchClient() {
+interface BotMatchClientProps {
+  mode: GameMode
+}
+
+export function BotMatchClient({ mode }: BotMatchClientProps) {
   const [phase, setPhase] = useState<MatchPhase>('countdown')
   const [countdown, setCountdown] = useState(COUNTDOWN_DURATION)
   const [timeRemaining, setTimeRemaining] = useState(MATCH_DURATION)
@@ -31,8 +35,8 @@ export function BotMatchClient() {
   const botScoreRef = useRef(0)
 
   useEffect(() => {
-    problemsRef.current = generateProblems(seedRef.current, 'probability', 50)
-  }, [])
+    problemsRef.current = generateProblems(seedRef.current, mode, 50)
+  }, [mode])
 
   const finishGame = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -41,7 +45,6 @@ export function BotMatchClient() {
     setFinished(true)
   }, [])
 
-  // Countdown
   useEffect(() => {
     if (phase !== 'countdown') return
 
@@ -59,7 +62,6 @@ export function BotMatchClient() {
     return () => clearInterval(interval)
   }, [phase])
 
-  // Game timer
   useEffect(() => {
     if (phase !== 'playing') return
 
@@ -85,7 +87,6 @@ export function BotMatchClient() {
     }
   }, [timeRemaining, phase, finishGame])
 
-  // Bot solver — schedules itself one problem at a time
   const scheduleBotSolve = useCallback(() => {
     const problem = problemsRef.current[botIndexRef.current]
     if (!problem) return
@@ -147,6 +148,9 @@ export function BotMatchClient() {
   if (phase === 'countdown') {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
+        <div className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">
+          {MODE_LABELS[mode]}
+        </div>
         <div className="mb-4 text-sm uppercase tracking-widest text-muted-foreground">
           Get ready
         </div>
@@ -168,7 +172,7 @@ export function BotMatchClient() {
   }
 
   if (phase === 'finished' && finished) {
-    return <BotMatchResults myScore={myScore} botScore={botScore} />
+    return <BotMatchResults myScore={myScore} botScore={botScore} mode={mode} />
   }
 
   return (

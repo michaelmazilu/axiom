@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { MatchResult } from '@/lib/game/types'
-import { MODE_LABEL } from '@/lib/game/types'
+import { MODE_LABELS } from '@/lib/game/types'
 
 interface MatchResultsProps {
   result: MatchResult
@@ -23,7 +23,7 @@ export function MatchResults({ result, currentUserId }: MatchResultsProps) {
     <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-6 py-12">
       {/* Outcome */}
       <div className="mb-2 text-sm uppercase tracking-widest text-muted-foreground">
-        {MODE_LABEL}
+        {MODE_LABELS[result.mode] ?? 'Probability'}
       </div>
       <h1
         className={cn(

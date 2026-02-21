@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PlayerStats } from './player-stats'
 import { Globe, Bot, UserPlus, X } from 'lucide-react'
+import type { GameMode } from '@/lib/game/math-generator'
+import { MODE_LABELS, GAME_MODES } from '@/lib/game/types'
+import { cn } from '@/lib/utils'
 
 interface ProfileData {
   id: string
@@ -27,6 +30,7 @@ interface LobbyClientProps {
 
 export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   const router = useRouter()
+  const [selectedMode, setSelectedMode] = useState<GameMode>('all')
   const [friendName, setFriendName] = useState('')
   const [challengeLoading, setChallengeLoading] = useState(false)
   const [challengeError, setChallengeError] = useState<string | null>(null)
@@ -39,11 +43,11 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
       router.push('/auth/sign-up')
       return
     }
-    router.push('/queue')
+    router.push(`/queue?mode=${selectedMode}`)
   }
 
   function handlePlayBot() {
-    router.push('/match/bot')
+    router.push(`/match/bot?mode=${selectedMode}`)
   }
 
   function handlePlayFriend() {
@@ -65,7 +69,7 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
       const res = await fetch('/api/challenge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName: friendName.trim() }),
+        body: JSON.stringify({ displayName: friendName.trim(), mode: selectedMode }),
       })
 
       const data = await res.json()
@@ -168,6 +172,24 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
         <p className="mt-2 text-sm text-muted-foreground">
           1v1 probability duels — 120 seconds, speed and precision
         </p>
+      </div>
+
+      {/* Category Selector */}
+      <div className="mb-8 flex flex-wrap gap-2">
+        {GAME_MODES.map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setSelectedMode(mode)}
+            className={cn(
+              'rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
+              selectedMode === mode
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {MODE_LABELS[mode]}
+          </button>
+        ))}
       </div>
 
       {/* Play Mode Cards */}

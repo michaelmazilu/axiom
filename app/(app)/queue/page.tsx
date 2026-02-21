@@ -1,11 +1,23 @@
 import { Suspense } from 'react'
 import { QueueClient } from '@/components/queue/queue-client'
+import type { GameMode } from '@/lib/game/math-generator'
 
 export const metadata = {
   title: 'Finding match',
 }
 
-export default function QueuePage() {
+const VALID_MODES: GameMode[] = ['combinatorics', 'discrete', 'conditional', 'all']
+
+export default async function QueuePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>
+}) {
+  const { mode } = await searchParams
+  const gameMode: GameMode = VALID_MODES.includes(mode as GameMode)
+    ? (mode as GameMode)
+    : 'all'
+
   return (
     <Suspense
       fallback={
@@ -14,7 +26,7 @@ export default function QueuePage() {
         </div>
       }
     >
-      <QueueClient />
+      <QueueClient mode={gameMode} />
     </Suspense>
   )
 }

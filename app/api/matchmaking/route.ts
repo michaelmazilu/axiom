@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateMatchSeed } from '@/lib/game/seeded-random'
 
-const MODE = 'probability' as const
+const VALID_MODES = ['combinatorics', 'discrete', 'conditional', 'all']
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -13,6 +13,9 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const body = await request.json()
+  const mode = VALID_MODES.includes(body.mode) ? body.mode : 'all'
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -26,7 +29,6 @@ export async function POST(request: NextRequest) {
 
   const playerElo = (profile.elo_probability ?? 1200) as number
 
-  // Check if already in queue
   const { data: existing } = await supabase
     .from('matchmaking_queue')
     .select('*')
@@ -38,11 +40,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: 'waiting', queueId: existing.id })
   }
 
-  // Look for an opponent within Elo range
   const { data: opponents } = await supabase
     .from('matchmaking_queue')
     .select('*')
-    .eq('mode', MODE)
+    .eq('mode', mode)
     .eq('status', 'waiting')
     .neq('user_id', user.id)
     .gte('elo', playerElo - 300)
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
       .insert({
         player1_id: opponent.user_id,
         player2_id: user.id,
-        mode: MODE,
+        mode,
         player1_elo_before: opponentElo,
         player2_elo_before: playerElo,
         player1_elo_after: opponentElo,
@@ -106,12 +107,11 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // No opponent found — join the queue
   const { data: queueEntry, error: queueError } = await supabase
     .from('matchmaking_queue')
     .insert({
       user_id: user.id,
-      mode: MODE,
+      mode,
       elo: playerElo,
       status: 'waiting',
     })

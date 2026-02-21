@@ -2,20 +2,23 @@
 
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import type { GameMode } from '@/lib/game/math-generator'
+import { MODE_LABELS } from '@/lib/game/types'
 
 interface BotMatchResultsProps {
   myScore: number
   botScore: number
+  mode: GameMode
 }
 
-export function BotMatchResults({ myScore, botScore }: BotMatchResultsProps) {
+export function BotMatchResults({ myScore, botScore, mode }: BotMatchResultsProps) {
   const isWinner = myScore > botScore
   const isDraw = myScore === botScore
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-6 py-12">
       <div className="mb-2 text-sm uppercase tracking-widest text-muted-foreground">
-        Practice Match
+        Practice — {MODE_LABELS[mode]}
       </div>
       <h1
         className={cn(
@@ -56,7 +59,7 @@ export function BotMatchResults({ myScore, botScore }: BotMatchResultsProps) {
 
       <div className="mt-10 flex items-center gap-4">
         <Link
-          href="/match/bot"
+          href={`/match/bot?mode=${mode}`}
           className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Play again

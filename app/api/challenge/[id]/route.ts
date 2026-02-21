@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateMatchSeed } from '@/lib/game/seeded-random'
 
-const MODE = 'probability' as const
-
-// POST = accept challenge
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,7 +16,6 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Fetch the challenge
   const { data: challenge } = await supabase
     .from('challenges')
     .select('*')
@@ -31,12 +27,10 @@ export async function POST(
     return NextResponse.json({ error: 'Challenge not found or already resolved' }, { status: 404 })
   }
 
-  // Only the challenged player can accept
   if (challenge.challenged_id !== user.id) {
     return NextResponse.json({ error: 'Not authorized to accept this challenge' }, { status: 403 })
   }
 
-  // Get both profiles for Elo
   const { data: profiles } = await supabase
     .from('profiles')
     .select('*')
@@ -52,13 +46,14 @@ export async function POST(
   const challengedElo = (challenged.elo_probability ?? 1200) as number
   const seed = generateMatchSeed()
 
-  // Create match
+  const mode = challenge.mode ?? 'all'
+
   const { data: match, error: matchError } = await supabase
     .from('matches')
     .insert({
       player1_id: challenge.challenger_id,
       player2_id: challenge.challenged_id,
-      mode: MODE,
+      mode,
       player1_elo_before: challengerElo,
       player2_elo_before: challengedElo,
       player1_elo_after: challengerElo,
@@ -73,7 +68,6 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to create match' }, { status: 500 })
   }
 
-  // Update challenge with match ID and accepted status
   await supabase
     .from('challenges')
     .update({ status: 'accepted', match_id: match.id })
@@ -85,7 +79,6 @@ export async function POST(
   })
 }
 
-// DELETE = decline challenge
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -100,7 +93,6 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Either participant can decline/cancel
   const { error } = await supabase
     .from('challenges')
     .update({ status: 'declined' })

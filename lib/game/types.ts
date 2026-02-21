@@ -52,5 +52,18 @@ export type GameEvent =
 export const MATCH_DURATION = 120 // seconds
 export const COUNTDOWN_DURATION = 3 // seconds
 
-export const MODE_LABEL = 'Probability'
-export const MODE_DESCRIPTION = '1v1 competitive probability — counting, combinations, and chance'
+export const MODE_LABELS: Record<GameMode, string> = {
+  combinatorics: 'Combinatorics',
+  discrete: 'Discrete Probability',
+  conditional: 'Conditional Probability',
+  all: 'All Topics',
+}
+
+export const MODE_DESCRIPTIONS: Record<GameMode, string> = {
+  combinatorics: 'Counting, permutations, and combinations',
+  discrete: 'Outcomes, sample spaces, and probability counting',
+  conditional: 'Counting under conditions and restrictions',
+  all: 'Mix of all probability topics',
+}
+
+export const GAME_MODES: GameMode[] = ['all', 'combinatorics', 'discrete', 'conditional']
