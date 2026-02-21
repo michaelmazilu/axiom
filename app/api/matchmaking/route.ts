@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
 
   const playerElo = (profile.elo_probability ?? 1200) as number
 
+  // Check if already waiting in queue
   const { data: existing } = await supabase
     .from('matchmaking_queue')
     .select('*')
@@ -40,6 +41,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: 'waiting', queueId: existing.id })
   }
 
+  // Clean up any stale entries (matched, etc.) before inserting a new one
+  await supabase
+    .from('matchmaking_queue')
+    .delete()
+    .eq('user_id', user.id)
+
+  // Look for an opponent in the queue
   const { data: opponents } = await supabase
     .from('matchmaking_queue')
     .select('*')
@@ -90,6 +98,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Mark opponent's queue entry as matched, then clean it up
     await supabase
       .from('matchmaking_queue')
       .update({ status: 'matched', match_id: match.id })
@@ -107,6 +116,7 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  // No opponent found — join the queue
   const { data: queueEntry, error: queueError } = await supabase
     .from('matchmaking_queue')
     .insert({
@@ -120,7 +130,7 @@ export async function POST(request: NextRequest) {
 
   if (queueError) {
     return NextResponse.json(
-      { error: 'Failed to join queue' },
+      { error: 'Failed to join queue: ' + queueError.message },
       { status: 500 }
     )
   }
@@ -142,7 +152,6 @@ export async function DELETE() {
     .from('matchmaking_queue')
     .delete()
     .eq('user_id', user.id)
-    .eq('status', 'waiting')
 
   return NextResponse.json({ status: 'cancelled' })
 }

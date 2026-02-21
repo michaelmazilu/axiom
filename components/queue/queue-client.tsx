@@ -15,6 +15,7 @@ interface QueueClientProps {
 export function QueueClient({ mode }: QueueClientProps) {
   const router = useRouter()
   const [status, setStatus] = useState<QueueStatus>('joining')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [elapsed, setElapsed] = useState(0)
   const [matchId, setMatchId] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -31,6 +32,12 @@ export function QueueClient({ mode }: QueueClientProps) {
 
       const data = await res.json()
 
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Server error')
+        setStatus('error')
+        return
+      }
+
       if (data.status === 'matched') {
         setStatus('matched')
         setMatchId(data.matchId)
@@ -46,8 +53,10 @@ export function QueueClient({ mode }: QueueClientProps) {
         return
       }
 
+      setErrorMsg('Unexpected response')
       setStatus('error')
     } catch {
+      setErrorMsg('Network error')
       setStatus('error')
     }
   }, [router, mode])
@@ -188,9 +197,22 @@ export function QueueClient({ mode }: QueueClientProps) {
             <h1 className="text-xl font-medium text-foreground">
               Something went wrong
             </h1>
+            {errorMsg && (
+              <p className="mt-3 text-sm text-destructive">{errorMsg}</p>
+            )}
+            <button
+              onClick={() => {
+                setStatus('joining')
+                setErrorMsg(null)
+                joinQueue()
+              }}
+              className="mt-6 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+            >
+              Try again
+            </button>
             <button
               onClick={() => router.push('/lobby')}
-              className="mt-6 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+              className="mt-3 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
             >
               Return to lobby
             </button>

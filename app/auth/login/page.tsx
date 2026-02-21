@@ -10,10 +10,6 @@ import { Label } from '@/components/ui/label'
 
 const EMAIL_DOMAIN = 'axiom-users.example.com'
 
-function usernameToEmail(username: string) {
-  return `${username.toLowerCase()}@${EMAIL_DOMAIN}`
-}
-
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -26,16 +22,34 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
-    const supabase = createClient()
-    const fakeEmail = usernameToEmail(username.trim())
+    const trimmedUsername = username.trim()
 
-    const { error } = await supabase.auth.signInWithPassword({
+    // First, verify the account exists and is confirmed via server
+    const verifyRes = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: trimmedUsername, password }),
+    })
+
+    const verifyData = await verifyRes.json()
+
+    if (!verifyRes.ok) {
+      setError(verifyData.error || 'Invalid username or password')
+      setLoading(false)
+      return
+    }
+
+    // Now sign in client-side with the confirmed email
+    const supabase = createClient()
+    const fakeEmail = `${trimmedUsername.toLowerCase()}@${EMAIL_DOMAIN}`
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email: fakeEmail,
       password,
     })
 
-    if (error) {
-      setError('Invalid username or password')
+    if (signInError) {
+      setError('Invalid password')
       setLoading(false)
       return
     }
