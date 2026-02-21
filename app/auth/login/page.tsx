@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -20,14 +20,17 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
+    const trimmed = username.trim().toLowerCase()
+    const fakeEmail = `${trimmed}@axiom.gg`
+
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: fakeEmail,
       password,
     })
 
     if (error) {
-      setError(error.message)
+      setError('Invalid username or password')
       setLoading(false)
       return
     }
@@ -49,17 +52,17 @@ export default function LoginPage() {
 
       <form onSubmit={handleLogin} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email" className="text-sm text-muted-foreground">
-            Email
+          <Label htmlFor="username" className="text-sm text-muted-foreground">
+            Username
           </Label>
           <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            id="username"
+            type="text"
+            placeholder="Your username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
-            autoComplete="email"
+            autoComplete="username"
             className="h-11 bg-background border-border"
           />
         </div>

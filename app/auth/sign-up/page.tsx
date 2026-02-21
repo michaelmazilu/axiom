@@ -9,9 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -21,26 +20,38 @@ export default function SignUpPage() {
     setError(null)
     setLoading(true)
 
+    const trimmed = username.trim().toLowerCase()
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(trimmed)) {
+      setError('Username must be 3-20 characters (letters, numbers, underscores)')
+      setLoading(false)
+      return
+    }
+
+    const fakeEmail = `${trimmed}@axiom.gg`
+
     const supabase = createClient()
     const { error: signUpError } = await supabase.auth.signUp({
-      email,
+      email: fakeEmail,
       password,
       options: {
         data: {
-          display_name: displayName || 'Player',
+          display_name: trimmed,
         },
       },
     })
 
     if (signUpError) {
-      setError(signUpError.message)
+      if (signUpError.message.includes('already registered')) {
+        setError('Username is already taken')
+      } else {
+        setError(signUpError.message)
+      }
       setLoading(false)
       return
     }
 
-    // Immediately sign in to ensure an active session
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
+      email: fakeEmail,
       password,
     })
 
@@ -67,36 +78,19 @@ export default function SignUpPage() {
 
       <form onSubmit={handleSignUp} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label
-            htmlFor="displayName"
-            className="text-sm text-muted-foreground"
-          >
-            Display name
+          <Label htmlFor="username" className="text-sm text-muted-foreground">
+            Username
           </Label>
           <Input
-            id="displayName"
+            id="username"
             type="text"
-            placeholder="Your name on the leaderboard"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Choose a username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
+            minLength={3}
+            maxLength={20}
             autoComplete="username"
-            className="h-11 bg-background border-border"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="email" className="text-sm text-muted-foreground">
-            Email
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
             className="h-11 bg-background border-border"
           />
         </div>
