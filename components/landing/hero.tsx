@@ -9,15 +9,9 @@ export function LandingHero() {
         </span>
       </div>
 
-      <h1 className="max-w-3xl text-4xl font-medium leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl text-balance">
-        Where probability{' '}
-        <span className="text-scholar-vermillion">meets competition</span>
+      <h1 className="font-mono text-5xl font-medium tracking-[0.2em] uppercase text-foreground sm:text-6xl lg:text-7xl">
+        Axiom
       </h1>
-
-      <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground text-pretty">
-        120 seconds. Two players. One answer at a time. Scholar is a real-time
-        competitive probability platform where speed and precision determine everything.
-      </p>
 
       <div className="mt-10 flex items-center gap-4">
         <Link
@@ -27,10 +21,10 @@ export function LandingHero() {
           Start competing
         </Link>
         <Link
-          href="#how"
+          href="#modes"
           className="rounded-md border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
         >
-          How it works
+          See examples
         </Link>
       </div>
 

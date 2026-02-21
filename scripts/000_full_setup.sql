@@ -1,4 +1,4 @@
--- Full database setup for Scholar (Probability mode)
+-- Full database setup for Axiom (Probability mode)
 -- Run this in your Supabase SQL editor for a fresh setup.
 
 -- 1. Profiles
@@ -28,7 +28,7 @@ BEGIN
   INSERT INTO public.profiles (id, display_name)
   VALUES (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'display_name', 'Scholar')
+    coalesce(new.raw_user_meta_data ->> 'display_name', 'Player')
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN new;

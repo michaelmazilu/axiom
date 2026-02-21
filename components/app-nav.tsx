@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LogOut, Trophy, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { ScholarLogo } from '@/components/scholar-logo'
+import { AxiomLogo } from '@/components/axiom-logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,7 +44,7 @@ export function AppNav({ user }: AppNavProps) {
     <header className="flex items-center justify-between border-b border-border px-6 py-3 lg:px-12">
       <div className="flex items-center gap-8">
         <Link href="/lobby">
-          <ScholarLogo size="sm" />
+          <AxiomLogo size="sm" />
         </Link>
         <nav className="hidden items-center gap-1 sm:flex" aria-label="Main navigation">
           {navLinks.map((link) => (

@@ -1,15 +1,14 @@
 import Link from 'next/link'
-import { ScholarLogo } from '@/components/scholar-logo'
+import { AxiomLogo } from '@/components/axiom-logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { LandingHero } from '@/components/landing/hero'
 import { LandingModes } from '@/components/landing/modes'
-import { LandingHow } from '@/components/landing/how-it-works'
 
 export default function LandingPage() {
   return (
     <div className="flex min-h-svh flex-col bg-background">
       <header className="flex items-center justify-between px-6 py-4 lg:px-12">
-        <ScholarLogo size="sm" />
+        <AxiomLogo size="sm" />
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Link
@@ -30,14 +29,13 @@ export default function LandingPage() {
       <main className="flex-1">
         <LandingHero />
         <LandingModes />
-        <LandingHow />
       </main>
 
       <footer className="border-t border-border px-6 py-8 lg:px-12">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <ScholarLogo size="sm" className="text-muted-foreground" />
+          <AxiomLogo size="sm" className="text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
-            Built for scholars. Speed is everything.
+            Built for competition. Speed is everything.
           </p>
         </div>
       </footer>

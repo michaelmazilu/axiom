@@ -30,7 +30,7 @@ export default function SignUpPage() {
           process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
           `${window.location.origin}/lobby`,
         data: {
-          display_name: displayName || 'Scholar',
+          display_name: displayName || 'Player',
         },
       },
     })

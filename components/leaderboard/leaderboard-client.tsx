@@ -29,7 +29,7 @@ export function LeaderboardClient({
           Leaderboard
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Top scholars ranked by Elo rating
+          Top players ranked by Elo rating
         </p>
       </div>
 

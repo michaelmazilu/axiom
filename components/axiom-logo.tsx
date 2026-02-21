@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-export function ScholarLogo({
+export function AxiomLogo({
   className,
   size = 'md',
 }: {
@@ -21,7 +21,7 @@ export function ScholarLogo({
         className
       )}
     >
-      Scholar
+      Axiom
     </span>
   )
 }

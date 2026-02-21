@@ -10,8 +10,8 @@ const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    default: 'Scholar — 1v1 Probability Duels',
-    template: '%s | Scholar',
+    default: 'Axiom — 1v1 Probability Duels',
+    template: '%s | Axiom',
   },
   description:
     'Real-time 1v1 competitive probability battles. Counting, combinations, and chance — 120 seconds, pure skill.',

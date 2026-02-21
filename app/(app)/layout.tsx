@@ -28,7 +28,7 @@ export default async function AppLayout({
         user={{
           id: user.id,
           email: user.email ?? '',
-          displayName: profile?.display_name ?? 'Scholar',
+          displayName: profile?.display_name ?? 'Player',
         }}
       />
       <main className="flex-1">{children}</main>
