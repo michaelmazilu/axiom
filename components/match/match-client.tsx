@@ -10,7 +10,6 @@ import { GameTimer } from './game-timer'
 import { ProblemDisplay } from './problem-display'
 import { ScoreBar } from './score-bar'
 import { MatchResults } from './match-results'
-import { Flame } from 'lucide-react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface PlayerInfo {
@@ -54,8 +53,6 @@ export function MatchClient({
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null)
   const [result, setResult] = useState<MatchResult | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [userElo, setUserElo] = useState(me.elo)
-  const [streak, setStreak] = useState(0)
 
   const problemsRef = useRef<MathProblem[]>([])
   const lockedProblemRef = useRef<MathProblem | null>(null)
@@ -63,81 +60,6 @@ export function MatchClient({
   const channelRef = useRef<RealtimeChannel | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  // Fetch user ELO and streak
-  useEffect(() => {
-    async function fetchUserData() {
-      const supabase = createClient()
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('elo_probability')
-        .eq('id', currentUserId)
-        .single()
-      
-      if (profile) {
-        setUserElo(profile.elo_probability ?? 1200)
-      }
-
-      // Calculate streak
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('completed_at')
-        .eq('status', 'completed')
-        .or(`player1_id.eq.${currentUserId},player2_id.eq.${currentUserId}`)
-        .not('completed_at', 'is', null)
-      
-      if (matches) {
-        const matchDates = matches.map(m => m.completed_at).filter(Boolean) as string[]
-        setStreak(calculateStreak(matchDates))
-      }
-    }
-    
-    fetchUserData()
-  }, [currentUserId])
-
-  function calculateStreak(matchDates: string[]): number {
-    if (matchDates.length === 0) return 0
-    
-    const uniqueDates = new Set<string>()
-    matchDates.forEach(dateStr => {
-      const date = new Date(dateStr)
-      date.setHours(0, 0, 0, 0)
-      uniqueDates.add(date.toISOString())
-    })
-    
-    const sortedDates = Array.from(uniqueDates)
-      .map(d => new Date(d))
-      .sort((a, b) => b.getTime() - a.getTime())
-    
-    if (sortedDates.length === 0) return 0
-    
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    
-    const mostRecent = sortedDates[0]
-    mostRecent.setHours(0, 0, 0, 0)
-    
-    if (mostRecent.getTime() !== today.getTime() && mostRecent.getTime() !== yesterday.getTime()) {
-      return 0
-    }
-    
-    let streak = 0
-    let checkDate = new Date(mostRecent)
-    
-    for (const matchDate of sortedDates) {
-      matchDate.setHours(0, 0, 0, 0)
-      if (matchDate.getTime() === checkDate.getTime()) {
-        streak++
-        checkDate.setDate(checkDate.getDate() - 1)
-      } else if (matchDate.getTime() < checkDate.getTime()) {
-        break
-      }
-    }
-    
-    return streak
-  }
 
   useEffect(() => {
     const problems = generateProblems(seed, mode, 50)
@@ -492,30 +414,24 @@ export function MatchClient({
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col px-6 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <ScoreBar
-          name={me.displayName}
-          score={myScore}
-          align="left"
-          isMe
-        />
-        <GameTimer timeRemaining={timeRemaining} />
-        <div className="flex items-center gap-4">
+      <div className="mb-8 grid grid-cols-3 items-center">
+        <div className="flex justify-start">
+          <ScoreBar
+            name={me.displayName}
+            score={myScore}
+            align="left"
+            isMe
+          />
+        </div>
+        <div className="flex justify-center">
+          <GameTimer timeRemaining={timeRemaining} />
+        </div>
+        <div className="flex justify-end">
           <ScoreBar
             name={opponent.displayName}
             score={opponentScore}
             align="right"
           />
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <Flame className="h-5 w-5 text-orange-500" />
-              <span className="font-mono text-sm font-medium text-foreground">{streak}</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-xs text-muted-foreground">ELO</span>
-              <span className="font-mono text-sm font-medium text-foreground">{userElo}</span>
-            </div>
-          </div>
         </div>
       </div>
 

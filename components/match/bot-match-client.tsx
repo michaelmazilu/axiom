@@ -8,8 +8,6 @@ import { GameTimer } from './game-timer'
 import { ProblemDisplay } from './problem-display'
 import { ScoreBar } from './score-bar'
 import { BotMatchResults } from './bot-match-results'
-import { Flame } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 type MatchPhase = 'countdown' | 'playing' | 'finished'
 
@@ -18,7 +16,7 @@ interface BotMatchClientProps {
   userElo?: number
 }
 
-export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
+export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
   const [phase, setPhase] = useState<MatchPhase>('countdown')
   const [countdown, setCountdown] = useState(COUNTDOWN_DURATION)
   const [timeRemaining, setTimeRemaining] = useState(MATCH_DURATION)
@@ -31,8 +29,7 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
   const [finished, setFinished] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [botName, setBotName] = useState('Axiom Bot 1')
-  const [botElo, setBotElo] = useState(userElo)
-  const [streak, setStreak] = useState(0)
+  const [botElo, setBotElo] = useState(Math.round(userElo / 100) * 100)
 
   const seedRef = useRef(crypto.randomUUID())
   const problemsRef = useRef<MathProblem[]>([])
@@ -44,8 +41,6 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const botScoreRef = useRef(0)
   const botNumberRef = useRef(1)
-  const lastEloChangeRef = useRef(0)
-  const eloChangeCountRef = useRef(0)
 
   useEffect(() => {
     const problems = generateProblems(seedRef.current, mode, 50)
@@ -74,74 +69,14 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
       }
     }
     
-    // Bot ELO starts at user ELO (matches countdown display)
-    setBotElo(userElo)
-
-    // Fetch streak
-    async function fetchStreak() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('completed_at')
-        .eq('status', 'completed')
-        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
-        .not('completed_at', 'is', null)
-      
-      if (matches) {
-        const matchDates = matches.map(m => m.completed_at).filter(Boolean) as string[]
-        setStreak(calculateStreak(matchDates))
-      }
-    }
-    
-    fetchStreak()
+    // Bot ELO always matches user ELO rounded to nearest 100
+    setBotElo(Math.round(userElo / 100) * 100)
   }, [mode, userElo])
 
-  function calculateStreak(matchDates: string[]): number {
-    if (matchDates.length === 0) return 0
-    
-    const uniqueDates = new Set<string>()
-    matchDates.forEach(dateStr => {
-      const date = new Date(dateStr)
-      date.setHours(0, 0, 0, 0)
-      uniqueDates.add(date.toISOString())
-    })
-    
-    const sortedDates = Array.from(uniqueDates)
-      .map(d => new Date(d))
-      .sort((a, b) => b.getTime() - a.getTime())
-    
-    if (sortedDates.length === 0) return 0
-    
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    
-    const mostRecent = sortedDates[0]
-    mostRecent.setHours(0, 0, 0, 0)
-    
-    if (mostRecent.getTime() !== today.getTime() && mostRecent.getTime() !== yesterday.getTime()) {
-      return 0
-    }
-    
-    let streak = 0
-    let checkDate = new Date(mostRecent)
-    
-    for (const matchDate of sortedDates) {
-      matchDate.setHours(0, 0, 0, 0)
-      if (matchDate.getTime() === checkDate.getTime()) {
-        streak++
-        checkDate.setDate(checkDate.getDate() - 1)
-      } else if (matchDate.getTime() < checkDate.getTime()) {
-        break
-      }
-    }
-    
-    return streak
-  }
+  // Update bot ELO whenever userElo changes, rounded to nearest 100
+  useEffect(() => {
+    setBotElo(Math.round(userElo / 100) * 100)
+  }, [userElo])
 
   const finishGame = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -213,53 +148,42 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
     const problem = problemsRef.current[botIndexRef.current]
     if (!problem) return
 
-    // Change bot ELO at least 2 times during the match, at random intervals
-    const currentTime = Date.now()
-    const timeSinceLastChange = lastEloChangeRef.current === 0 ? Infinity : currentTime - lastEloChangeRef.current
-    const shouldChange = eloChangeCountRef.current < 2 
-      ? timeSinceLastChange > 20000 // Force change if less than 2 changes
-      : timeSinceLastChange > 30000 && Math.random() < 0.15 // Random changes after 2
-    
-    if (shouldChange) {
-      // Keep bot ELO at user ELO (no rounding)
-      setBotElo(userElo)
-      lastEloChangeRef.current = currentTime
-      eloChangeCountRef.current += 1
-    }
+    // Bot ELO always matches user ELO rounded to nearest 100
+    setBotElo(Math.round(userElo / 100) * 100)
 
-    // Bot performance based on ELO
+    // Bot performance based on user ELO
     // For 800 ELO bot, aim for 8-12 questions correct (out of ~50 in 120 seconds)
     // That's roughly 16-24% accuracy overall
-    const eloDiff = botElo - userElo
-    // Base accuracy scales with ELO, but for 800 ELO, keep it low to get 8-12 correct
+    // Bot ELO always matches user ELO, so performance is based on userElo
     let baseAccuracy: number
-    if (botElo <= 800) {
+    if (userElo <= 800) {
       // For 800 ELO: 20-30% accuracy depending on difficulty to get 8-12 correct
       baseAccuracy = problem.difficulty <= 2 ? 0.3 : problem.difficulty <= 4 ? 0.25 : 0.2
+    } else if (userElo <= 1000) {
+      baseAccuracy = problem.difficulty <= 2 ? 0.4 : problem.difficulty <= 4 ? 0.35 : 0.3
+    } else if (userElo <= 1200) {
+      baseAccuracy = problem.difficulty <= 2 ? 0.5 : problem.difficulty <= 4 ? 0.45 : 0.4
     } else {
-      baseAccuracy = eloDiff > 200 ? 0.9 : eloDiff > 0 ? 0.75 : eloDiff > -200 ? 0.6 : 0.4
+      baseAccuracy = problem.difficulty <= 2 ? 0.6 : problem.difficulty <= 4 ? 0.55 : 0.5
     }
     const adjustedAccuracy = baseAccuracy - (problem.difficulty - 3) * 0.05 // Smaller difficulty penalty
     
     const baseDuration = problem.difficulty <= 2 ? 3000 : problem.difficulty <= 4 ? 6000 : 9000
-    const eloMultiplier = eloDiff > 200 ? 0.7 : eloDiff > 0 ? 0.85 : eloDiff > -200 ? 1.0 : 1.2
+    // Bot speed scales with user ELO - higher ELO users get faster bots
+    const eloMultiplier = userElo <= 800 ? 1.2 : userElo <= 1000 ? 1.0 : userElo <= 1200 ? 0.85 : 0.7
     const jitter = (Math.random() - 0.5) * 2000
     const delay = baseDuration * eloMultiplier + jitter
 
     botTimerRef.current = setTimeout(() => {
       if (Math.random() < adjustedAccuracy) {
-        // Score based on ELO - higher ELO bots score more consistently
-        const basePts = problem.difficulty
-        // Add randomization: ±1 point variation
-        const scoreVariation = Math.floor(Math.random() * 3) - 1 // -1, 0, or +1
-        const pts = Math.max(1, basePts + scoreVariation)
-        botScoreRef.current += pts
+        // Bot scores 1 point per correct answer
+        botScoreRef.current += 1
         setBotScore(botScoreRef.current)
       }
       botIndexRef.current += 1
       scheduleBotSolve()
     }, delay)
-  }, [botElo, userElo])
+  }, [userElo])
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -365,21 +289,15 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col px-6 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <ScoreBar name="You" score={myScore} align="left" isMe />
-        <GameTimer timeRemaining={timeRemaining} />
-        <div className="flex items-center gap-4">
+      <div className="mb-8 grid grid-cols-3 items-center">
+        <div className="flex justify-start">
+          <ScoreBar name="You" score={myScore} align="left" isMe />
+        </div>
+        <div className="flex justify-center">
+          <GameTimer timeRemaining={timeRemaining} />
+        </div>
+        <div className="flex justify-end">
           <ScoreBar name={botName} score={botScore} align="right" />
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <Flame className="h-5 w-5 text-orange-500" />
-              <span className="font-mono text-sm font-medium text-foreground">{streak}</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-xs text-muted-foreground">ELO</span>
-              <span className="font-mono text-sm font-medium text-foreground">{userElo}</span>
-            </div>
-          </div>
         </div>
       </div>
 

@@ -22,14 +22,14 @@ export default async function BotMatchPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  let userElo = 1200
+  let userElo = 800
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('elo_probability')
       .eq('id', user.id)
       .single()
-    userElo = profile?.elo_probability ?? 1200
+    userElo = profile?.elo_probability ?? 800
   }
 
   return <BotMatchClient mode={gameMode} userElo={userElo} />

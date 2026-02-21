@@ -42,8 +42,8 @@ export async function POST(
 
   const challenger = profiles.find((p) => p.id === challenge.challenger_id)!
   const challenged = profiles.find((p) => p.id === challenge.challenged_id)!
-  const challengerElo = (challenger.elo_probability ?? 1200) as number
-  const challengedElo = (challenged.elo_probability ?? 1200) as number
+  const challengerElo = (challenger.elo_probability ?? 800) as number
+  const challengedElo = (challenged.elo_probability ?? 800) as number
   const seed = generateMatchSeed()
 
   const mode = challenge.mode ?? 'all'
