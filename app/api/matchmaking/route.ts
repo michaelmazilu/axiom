@@ -109,22 +109,31 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // No opponent found — use RPC to join queue (bypasses PostgREST schema cache)
-  const { data: newId, error: rpcError } = await supabase
-    .rpc('join_matchmaking_queue', {
-      p_user_id: user.id,
-      p_mode: mode,
-      p_elo: playerElo,
-    })
+  // No opponent found — clean up old entries and join queue
+  await supabase
+    .from('matchmaking_queue')
+    .delete()
+    .eq('user_id', user.id)
 
-  if (rpcError) {
+  const { data: queueEntry, error: queueError } = await supabase
+    .from('matchmaking_queue')
+    .insert({
+      user_id: user.id,
+      mode,
+      elo: playerElo,
+      status: 'waiting',
+    })
+    .select()
+    .single()
+
+  if (queueError) {
     return NextResponse.json(
-      { error: 'Failed to join queue: ' + rpcError.message },
+      { error: 'Failed to join queue: ' + queueError.message },
       { status: 500 }
     )
   }
 
-  return NextResponse.json({ status: 'waiting', queueId: newId })
+  return NextResponse.json({ status: 'waiting', queueId: queueEntry.id })
 }
 
 export async function DELETE() {
