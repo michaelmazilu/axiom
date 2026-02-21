@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function SignUpPage() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -20,44 +20,24 @@ export default function SignUpPage() {
     setError(null)
     setLoading(true)
 
-    const trimmed = username.trim().toLowerCase()
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(trimmed)) {
-      setError('Username must be 3-20 characters (letters, numbers, underscores)')
-      setLoading(false)
-      return
-    }
-
-    const fakeEmail = `${trimmed}@axiom.gg`
+    const trimmedEmail = email.trim().toLowerCase()
+    const displayName = trimmedEmail.split('@')[0]
 
     const supabase = createClient()
 
-    // Try signing in first — if the user already exists, skip signUp entirely
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
-      password,
-    })
-
-    if (!signInError) {
-      router.push('/lobby')
-      router.refresh()
-      return
-    }
-
-    // Not an existing user — create the account
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: fakeEmail,
+      email: trimmedEmail,
       password,
       options: {
         data: {
-          display_name: trimmed,
+          display_name: displayName,
         },
-        emailRedirectTo: undefined,
       },
     })
 
     if (signUpError) {
       if (signUpError.message.includes('already registered')) {
-        setError('Username is already taken')
+        setError('An account with this email already exists')
       } else if (signUpError.message.includes('rate limit')) {
         setError('Too many attempts. Please wait a moment and try again.')
       } else {
@@ -67,21 +47,19 @@ export default function SignUpPage() {
       return
     }
 
-    // If Supabase returned a session directly (email confirm disabled), we're good
     if (signUpData?.session) {
       router.push('/lobby')
       router.refresh()
       return
     }
 
-    // Otherwise try signing in immediately
-    const { error: postSignInError } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
       password,
     })
 
-    if (postSignInError) {
-      setError(postSignInError.message)
+    if (signInError) {
+      setError(signInError.message)
       setLoading(false)
       return
     }
@@ -103,19 +81,17 @@ export default function SignUpPage() {
 
       <form onSubmit={handleSignUp} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="username" className="text-sm text-muted-foreground">
-            Username
+          <Label htmlFor="email" className="text-sm text-muted-foreground">
+            Email
           </Label>
           <Input
-            id="username"
-            type="text"
-            placeholder="Choose a username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
-            minLength={3}
-            maxLength={20}
-            autoComplete="username"
+            autoComplete="email"
             className="h-11 bg-background border-border"
           />
         </div>

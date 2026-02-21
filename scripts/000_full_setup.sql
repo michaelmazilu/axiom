@@ -28,7 +28,10 @@ BEGIN
   INSERT INTO public.profiles (id, display_name)
   VALUES (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'display_name', 'Player')
+    coalesce(
+      new.raw_user_meta_data ->> 'display_name',
+      split_part(new.email, '@', 1)
+    )
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN new;
