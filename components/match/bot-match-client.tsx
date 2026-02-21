@@ -369,17 +369,12 @@ export function BotMatchClient({ mode, userElo = 1200 }: BotMatchClientProps) {
         <ScoreBar name="You" score={myScore} align="left" isMe />
         <GameTimer timeRemaining={timeRemaining} />
         <div className="flex items-center gap-4">
-          <div className="flex flex-col items-end">
-            <ScoreBar name={botName} score={botScore} align="right" />
-            <span className="mt-1 font-mono text-xs text-muted-foreground">{botElo}</span>
-          </div>
+          <ScoreBar name={botName} score={botScore} align="right" />
           <div className="flex items-center gap-3">
-            {streak > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Flame className="h-5 w-5 text-orange-500" />
-                <span className="font-mono text-sm font-medium text-foreground">{streak}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5">
+              <Flame className="h-5 w-5 text-orange-500" />
+              <span className="font-mono text-sm font-medium text-foreground">{streak}</span>
+            </div>
             <div className="flex flex-col items-end">
               <span className="text-xs text-muted-foreground">ELO</span>
               <span className="font-mono text-sm font-medium text-foreground">{userElo}</span>
