@@ -30,19 +30,36 @@ export default function SignUpPage() {
     const fakeEmail = `${trimmed}@axiom.gg`
 
     const supabase = createClient()
-    const { error: signUpError } = await supabase.auth.signUp({
+
+    // Try signing in first — if the user already exists, skip signUp entirely
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: fakeEmail,
+      password,
+    })
+
+    if (!signInError) {
+      router.push('/lobby')
+      router.refresh()
+      return
+    }
+
+    // Not an existing user — create the account
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: fakeEmail,
       password,
       options: {
         data: {
           display_name: trimmed,
         },
+        emailRedirectTo: undefined,
       },
     })
 
     if (signUpError) {
       if (signUpError.message.includes('already registered')) {
         setError('Username is already taken')
+      } else if (signUpError.message.includes('rate limit')) {
+        setError('Too many attempts. Please wait a moment and try again.')
       } else {
         setError(signUpError.message)
       }
@@ -50,13 +67,21 @@ export default function SignUpPage() {
       return
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    // If Supabase returned a session directly (email confirm disabled), we're good
+    if (signUpData?.session) {
+      router.push('/lobby')
+      router.refresh()
+      return
+    }
+
+    // Otherwise try signing in immediately
+    const { error: postSignInError } = await supabase.auth.signInWithPassword({
       email: fakeEmail,
       password,
     })
 
-    if (signInError) {
-      setError(signInError.message)
+    if (postSignInError) {
+      setError(postSignInError.message)
       setLoading(false)
       return
     }
