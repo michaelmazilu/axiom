@@ -3,8 +3,10 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { MODE_LABELS } from '@/lib/game/types'
+import { MODE_LABELS, MATCH_DURATION, COUNTDOWN_DURATION } from '@/lib/game/types'
 import type { GameMode } from '@/lib/game/math-generator'
+
+const MATCH_STALE_MS = (MATCH_DURATION + COUNTDOWN_DURATION + 60) * 1000
 
 type QueueStatus = 'joining' | 'waiting' | 'matched' | 'error'
 
@@ -86,12 +88,14 @@ export function QueueClient({ mode }: QueueClientProps) {
           return
         }
 
-        // Fallback: check matches table directly for an active match
-        // This catches cases where the queue entry update failed silently
+        // Fallback: check matches table directly for a genuinely active match
+        // Only consider recent matches (within match duration + buffer)
+        const recentThreshold = new Date(Date.now() - MATCH_STALE_MS).toISOString()
         const { data: activeMatch } = await supabase
           .from('matches')
           .select('id')
           .eq('status', 'in_progress')
+          .gte('created_at', recentThreshold)
           .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
           .limit(1)
           .maybeSingle()

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateMatchSeed } from '@/lib/game/seeded-random'
-import { GAME_MODES } from '@/lib/game/types'
+import { GAME_MODES, MATCH_DURATION, COUNTDOWN_DURATION } from '@/lib/game/types'
+
+const MATCH_STALE_MS = (MATCH_DURATION + COUNTDOWN_DURATION + 60) * 1000
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -39,35 +41,47 @@ export async function POST(request: NextRequest) {
   if (matched?.match_id) {
     const { data: matchCheck } = await supabase
       .from('matches')
-      .select('status')
+      .select('status, created_at')
       .eq('id', matched.match_id)
       .single()
 
-    if (matchCheck?.status === 'in_progress') {
+    const isRecent = matchCheck?.created_at &&
+      new Date(matchCheck.created_at).getTime() > Date.now() - MATCH_STALE_MS
+
+    if (matchCheck?.status === 'in_progress' && isRecent) {
       return NextResponse.json({
         status: 'matched',
         matchId: matched.match_id,
       })
     }
 
-    // Stale matched entry pointing to a completed/missing match — clean it up
+    // Stale or completed — clean up the queue entry
     await supabase
       .from('matchmaking_queue')
       .delete()
       .eq('id', matched.id)
   }
 
-  // Also check if already in an active match (catches cases where queue entry update failed)
+  // Mark any abandoned in_progress matches as completed (older than match duration + buffer)
+  const staleThreshold = new Date(Date.now() - MATCH_STALE_MS).toISOString()
+  await supabase
+    .from('matches')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .eq('status', 'in_progress')
+    .lt('created_at', staleThreshold)
+    .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+
+  // Check if already in a genuinely active match (created recently)
   const { data: activeMatch } = await supabase
     .from('matches')
     .select('id')
     .eq('status', 'in_progress')
+    .gte('created_at', staleThreshold)
     .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
     .limit(1)
     .maybeSingle()
 
   if (activeMatch) {
-    // Clean up any queue entries since we're already in a match
     await supabase
       .from('matchmaking_queue')
       .delete()
