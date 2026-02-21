@@ -192,11 +192,20 @@ export function MatchClient({
       config: { broadcast: { self: false } },
     })
 
+    // Fallback: force countdown even if Realtime subscription is slow or fails
+    const fallbackTimer = setTimeout(() => {
+      setPhase((current) => {
+        if (current === 'waiting') return 'countdown'
+        return current
+      })
+    }, 5000)
+
     channel
       .on('broadcast', { event: 'game_event' }, ({ payload }) => {
         const event = payload as GameEvent
 
         if (event.type === 'player_ready') {
+          clearTimeout(fallbackTimer)
           setPhase('countdown')
         }
 
@@ -251,6 +260,8 @@ export function MatchClient({
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
+          clearTimeout(fallbackTimer)
+
           await channel.send({
             type: 'broadcast',
             event: 'game_event',
@@ -269,6 +280,7 @@ export function MatchClient({
     channelRef.current = channel
 
     return () => {
+      clearTimeout(fallbackTimer)
       supabase.removeChannel(channel)
     }
   }, [matchId, currentUserId])
