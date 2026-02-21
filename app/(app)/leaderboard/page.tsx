@@ -23,7 +23,7 @@ export default async function LeaderboardPage() {
         (profiles ?? []).map((p) => ({
           id: p.id,
           displayName: p.display_name,
-          eloProbability: p.elo_probability,
+          eloProbability: p.elo_probability ?? 1200,
           totalWins: p.total_wins,
           totalLosses: p.total_losses,
         }))

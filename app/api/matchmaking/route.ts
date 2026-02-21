@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  const playerElo = profile.elo_probability as number
+  const playerElo = (profile.elo_probability ?? 1200) as number
 
   // Check if already in queue
   const { data: existing } = await supabase
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Opponent profile not found' }, { status: 500 })
     }
 
-    const opponentElo = opponentProfile.elo_probability as number
+    const opponentElo = (opponentProfile.elo_probability ?? 1200) as number
     const seed = generateMatchSeed()
 
     const { data: match, error: matchError } = await supabase

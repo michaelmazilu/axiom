@@ -1,14 +1,27 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { AxiomLogo } from '@/components/axiom-logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { LandingHero } from '@/components/landing/hero'
 import { LandingModes } from '@/components/landing/modes'
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (user) redirect('/lobby')
+
   return (
     <div className="flex min-h-svh flex-col bg-background">
       <header className="flex items-center justify-between px-6 py-4 lg:px-12">
-        <AxiomLogo size="sm" />
+        <div className="flex items-center gap-3">
+          <AxiomLogo size="sm" />
+          <div className="h-4 w-px bg-border" />
+          <span className="text-sm text-muted-foreground">Guest</span>
+        </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Link
