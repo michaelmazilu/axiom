@@ -77,11 +77,36 @@ export function QueueClient({ mode }: QueueClientProps) {
           .maybeSingle()
 
         if (queueEntry?.match_id) {
+          if (pollRef.current) clearInterval(pollRef.current)
           setStatus('matched')
           setMatchId(queueEntry.match_id)
-          if (pollRef.current) clearInterval(pollRef.current)
           setTimeout(() => {
             router.push(`/match/${queueEntry.match_id}`)
+          }, 1500)
+          return
+        }
+
+        // Fallback: check matches table directly for an active match
+        // This catches cases where the queue entry update failed silently
+        const { data: activeMatch } = await supabase
+          .from('matches')
+          .select('id')
+          .eq('status', 'in_progress')
+          .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+          .limit(1)
+          .maybeSingle()
+
+        if (activeMatch) {
+          if (pollRef.current) clearInterval(pollRef.current)
+          supabase
+            .from('matchmaking_queue')
+            .delete()
+            .eq('user_id', user.id)
+            .then(() => {})
+          setStatus('matched')
+          setMatchId(activeMatch.id)
+          setTimeout(() => {
+            router.push(`/match/${activeMatch.id}`)
           }, 1500)
           return
         }
@@ -94,9 +119,9 @@ export function QueueClient({ mode }: QueueClientProps) {
         const data = await res.json()
 
         if (data.status === 'matched') {
+          if (pollRef.current) clearInterval(pollRef.current)
           setStatus('matched')
           setMatchId(data.matchId)
-          if (pollRef.current) clearInterval(pollRef.current)
           setTimeout(() => {
             router.push(`/match/${data.matchId}`)
           }, 1500)

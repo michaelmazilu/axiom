@@ -32,6 +32,12 @@ export default async function MatchPage({
     redirect('/lobby')
   }
 
+  // Clean up queue entries now that the player has entered the match
+  await supabase
+    .from('matchmaking_queue')
+    .delete()
+    .eq('user_id', user.id)
+
   const { data: profiles } = await supabase
     .from('profiles')
     .select('*')

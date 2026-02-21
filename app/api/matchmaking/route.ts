@@ -37,9 +37,45 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (matched?.match_id) {
+    const { data: matchCheck } = await supabase
+      .from('matches')
+      .select('status')
+      .eq('id', matched.match_id)
+      .single()
+
+    if (matchCheck?.status === 'in_progress') {
+      return NextResponse.json({
+        status: 'matched',
+        matchId: matched.match_id,
+      })
+    }
+
+    // Stale matched entry pointing to a completed/missing match — clean it up
+    await supabase
+      .from('matchmaking_queue')
+      .delete()
+      .eq('id', matched.id)
+  }
+
+  // Also check if already in an active match (catches cases where queue entry update failed)
+  const { data: activeMatch } = await supabase
+    .from('matches')
+    .select('id')
+    .eq('status', 'in_progress')
+    .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+    .limit(1)
+    .maybeSingle()
+
+  if (activeMatch) {
+    // Clean up any queue entries since we're already in a match
+    await supabase
+      .from('matchmaking_queue')
+      .delete()
+      .eq('user_id', user.id)
+
     return NextResponse.json({
       status: 'matched',
-      matchId: matched.match_id,
+      matchId: activeMatch.id,
     })
   }
 
@@ -95,10 +131,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await supabase
+    const { data: updated } = await supabase
       .from('matchmaking_queue')
       .update({ status: 'matched', match_id: match.id })
       .eq('id', opponent.id)
+      .eq('status', 'waiting')
+      .select()
+
+    if (!updated || updated.length === 0) {
+      // Queue entry ID may have changed (deleted+recreated) — fall back to user_id
+      await supabase
+        .from('matchmaking_queue')
+        .update({ status: 'matched', match_id: match.id })
+        .eq('user_id', opponent.user_id)
+        .eq('mode', mode)
+        .eq('status', 'waiting')
+    }
 
     // Clean up own waiting entries only (never delete matched entries)
     await supabase
