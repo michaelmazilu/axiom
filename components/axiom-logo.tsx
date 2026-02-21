@@ -16,12 +16,12 @@ export function AxiomLogo({
   return (
     <span
       className={cn(
-        'font-mono tracking-[0.2em] uppercase font-medium text-foreground',
+        'font-mono font-medium tracking-wide text-foreground',
         sizeClasses[size],
         className
       )}
     >
-      Axiom
+      A<span className="text-red-500">(x)</span>iom
     </span>
   )
 }

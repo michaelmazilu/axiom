@@ -38,7 +38,7 @@ export function Sidebar({ user }: SidebarProps) {
       <div className="px-6 py-6">
         <Link href="/lobby" className="block">
           <span className="font-mono text-xl font-medium tracking-wide text-sidebar-foreground">
-            A<span className="text-scholar-vermillion">(x)</span>iom
+            A<span className="text-red-500">(x)</span>iom
           </span>
         </Link>
       </div>
