@@ -41,12 +41,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: 'waiting', queueId: existing.id })
   }
 
-  // Clean up any stale entries (matched, etc.) before inserting a new one
-  await supabase
-    .from('matchmaking_queue')
-    .delete()
-    .eq('user_id', user.id)
-
   // Look for an opponent in the queue
   const { data: opponents } = await supabase
     .from('matchmaking_queue')
@@ -98,7 +92,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Mark opponent's queue entry as matched, then clean it up
     await supabase
       .from('matchmaking_queue')
       .update({ status: 'matched', match_id: match.id })
@@ -116,36 +109,22 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // No opponent found — join the queue
-  const insertPayload = {
-    user_id: user.id,
-    mode,
-    elo: playerElo,
-    status: 'waiting',
-  }
+  // No opponent found — use RPC to join queue (bypasses PostgREST schema cache)
+  const { data: newId, error: rpcError } = await supabase
+    .rpc('join_matchmaking_queue', {
+      p_user_id: user.id,
+      p_mode: mode,
+      p_elo: playerElo,
+    })
 
-  const { data: queueEntry, error: queueError } = await supabase
-    .from('matchmaking_queue')
-    .insert(insertPayload)
-    .select()
-    .single()
-
-  if (queueError) {
+  if (rpcError) {
     return NextResponse.json(
-      {
-        error: 'Failed to join queue: ' + queueError.message,
-        debug: {
-          insertPayload,
-          errorCode: queueError.code,
-          errorDetails: queueError.details,
-          errorHint: queueError.hint,
-        },
-      },
+      { error: 'Failed to join queue: ' + rpcError.message },
       { status: 500 }
     )
   }
 
-  return NextResponse.json({ status: 'waiting', queueId: queueEntry.id })
+  return NextResponse.json({ status: 'waiting', queueId: newId })
 }
 
 export async function DELETE() {
