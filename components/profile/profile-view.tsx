@@ -33,9 +33,6 @@ export function ProfileView({
   isOwnProfile,
   viewingUserId,
 }: ProfileViewProps) {
-  const totalGames = profile.totalWins + profile.totalLosses + profile.totalDraws
-  const winRate = totalGames > 0 ? Math.round((profile.totalWins / totalGames) * 100) : 0
-
   const joinDate = new Date(profile.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -67,26 +64,6 @@ export function ProfileView({
             {profile.eloProbability}
           </div>
         </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="mb-12 grid grid-cols-4 gap-4">
-        {[
-          { label: 'Wins', value: profile.totalWins },
-          { label: 'Losses', value: profile.totalLosses },
-          { label: 'Draws', value: profile.totalDraws },
-          { label: 'Win rate', value: `${winRate}%` },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="flex flex-col rounded-lg border border-border bg-card px-4 py-3"
-          >
-            <span className="text-xs text-muted-foreground">{stat.label}</span>
-            <span className="mt-1 font-mono text-lg font-medium text-foreground">
-              {stat.value}
-            </span>
-          </div>
-        ))}
       </div>
 
       {/* Match history */}

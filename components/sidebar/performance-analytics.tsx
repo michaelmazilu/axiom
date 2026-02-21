@@ -12,6 +12,9 @@ interface PerformanceData {
   totalAttempts: number
   winRate: number
   averageScore: number
+  wins: number
+  losses: number
+  draws: number
   accuracyTrend: { date: string; value: number }[]
   eloTrend: { date: string; value: number }[]
 }
@@ -45,6 +48,9 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
           totalAttempts: 0,
           winRate: 0,
           averageScore: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
           accuracyTrend: [],
           eloTrend: [],
         })
@@ -65,12 +71,15 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
           score: userScore,
           accuracy,
           won,
+          isDraw: match.winner_id === null,
           date: match.completed_at || match.created_at,
         }
       })
 
       const totalAttempts = userMatches.length
-      const wins = userMatches.filter((m) => m.won).length
+      const wins = userMatches.filter((m) => m.won === true).length
+      const draws = userMatches.filter((m) => m.isDraw === true).length
+      const losses = totalAttempts - wins - draws
       const winRate = totalAttempts > 0 ? (wins / totalAttempts) * 100 : 0
       const highestAccuracy = Math.max(...userMatches.map((m) => m.accuracy), 0)
       const averageScore =
@@ -118,6 +127,9 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
         totalAttempts,
         winRate: Math.round(winRate),
         averageScore: Math.round(averageScore),
+        wins,
+        losses,
+        draws,
         accuracyTrend,
         eloTrend,
       })
@@ -246,6 +258,61 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
                 isSidebar ? 'text-sidebar-foreground' : 'text-foreground'
               )}>
                 {data.averageScore}
+              </div>
+            </div>
+          </div>
+
+          {/* Wins/Losses/Draws */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className={cn(
+              'rounded-lg border p-3',
+              isSidebar 
+                ? 'border-sidebar-border bg-sidebar-accent/30' 
+                : 'border-border bg-muted/50'
+            )}>
+              <div className={cn(
+                'text-xs mb-1',
+                isSidebar ? 'text-muted-foreground' : 'text-muted-foreground'
+              )}>Wins</div>
+              <div className={cn(
+                'text-lg font-semibold',
+                isSidebar ? 'text-sidebar-foreground' : 'text-foreground'
+              )}>
+                {data.wins}
+              </div>
+            </div>
+            <div className={cn(
+              'rounded-lg border p-3',
+              isSidebar 
+                ? 'border-sidebar-border bg-sidebar-accent/30' 
+                : 'border-border bg-muted/50'
+            )}>
+              <div className={cn(
+                'text-xs mb-1',
+                isSidebar ? 'text-muted-foreground' : 'text-muted-foreground'
+              )}>Losses</div>
+              <div className={cn(
+                'text-lg font-semibold',
+                isSidebar ? 'text-sidebar-foreground' : 'text-foreground'
+              )}>
+                {data.losses}
+              </div>
+            </div>
+            <div className={cn(
+              'rounded-lg border p-3',
+              isSidebar 
+                ? 'border-sidebar-border bg-sidebar-accent/30' 
+                : 'border-border bg-muted/50'
+            )}>
+              <div className={cn(
+                'text-xs mb-1',
+                isSidebar ? 'text-muted-foreground' : 'text-muted-foreground'
+              )}>Draws</div>
+              <div className={cn(
+                'text-lg font-semibold',
+                isSidebar ? 'text-sidebar-foreground' : 'text-foreground'
+              )}>
+                {data.draws}
               </div>
             </div>
           </div>
