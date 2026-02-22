@@ -1,5 +1,7 @@
 import { cn } from '@/lib/utils'
 import { MODE_LABELS, resolveMode } from '@/lib/game/types'
+import { LogoutButton } from './logout-button'
+import { ActivityGraph } from './activity-graph'
 
 interface ProfileData {
   id: string
@@ -25,6 +27,7 @@ interface MatchData {
 interface ProfileViewProps {
   profile: ProfileData
   matches: MatchData[]
+  activityDates: string[]
   isOwnProfile: boolean
   viewingUserId: string
 }
@@ -32,6 +35,7 @@ interface ProfileViewProps {
 export function ProfileView({
   profile,
   matches,
+  activityDates,
   isOwnProfile,
   viewingUserId,
 }: ProfileViewProps) {
@@ -65,6 +69,16 @@ export function ProfileView({
           <div className="mt-1 font-mono text-2xl font-medium text-foreground">
             {profile.eloProbability}
           </div>
+        </div>
+      </div>
+
+      {/* Activity */}
+      <div className="mb-12">
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-muted-foreground">
+          Activity
+        </h2>
+        <div className="rounded-lg border border-border bg-card px-5 py-4">
+          <ActivityGraph matchDates={activityDates} />
         </div>
       </div>
 
@@ -127,6 +141,13 @@ export function ProfileView({
           })}
         </div>
       </div>
+
+      {/* Log out */}
+      {isOwnProfile && (
+        <div className="mt-12 flex justify-center">
+          <LogoutButton />
+        </div>
+      )}
     </div>
   )
 }

@@ -122,6 +122,18 @@ export default async function ProfilePage({
     matches = fetchedMatches
   }
 
+  // Fetch all match dates for the activity graph (lightweight query)
+  const { data: allMatchDates } = await supabase
+    .from('matches')
+    .select('completed_at')
+    .or(`player1_id.eq.${id},player2_id.eq.${id}`)
+    .eq('status', 'completed')
+    .not('completed_at', 'is', null)
+    .order('completed_at', { ascending: false })
+    .limit(500)
+
+  const activityDates = (allMatchDates ?? []).map(m => m.completed_at).filter(Boolean) as string[]
+
   return (
     <ProfileView
       profile={{
@@ -143,6 +155,7 @@ export default async function ProfilePage({
         winnerId: m.winner_id,
         completedAt: m.completed_at,
       }))}
+      activityDates={activityDates}
       isOwnProfile={user?.id === id}
       viewingUserId={id}
     />

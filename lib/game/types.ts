@@ -60,10 +60,10 @@ export const MODE_LABELS: Record<GameMode, string> = {
 }
 
 export const MODE_DESCRIPTIONS: Record<GameMode, string> = {
-  statistics: 'Combinatorics, discrete probability, and conditional probability',
-  arithmetic: 'Addition, subtraction, multiplication, and division',
-  functions: 'Roots, expansion, and polynomial manipulation',
-  calculus: 'Derivatives, power rule, and differentiation',
+  statistics: 'Probability & counting',
+  arithmetic: 'Speed fundamentals',
+  functions: 'Algebra mastery',
+  calculus: 'Derivative sprints',
 }
 
 export const GAME_MODES: GameMode[] = ['statistics', 'arithmetic', 'functions', 'calculus']

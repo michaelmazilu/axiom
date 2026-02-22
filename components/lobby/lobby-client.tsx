@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Globe, Bot, UserPlus, X, Flame } from 'lucide-react'
 import type { GameMode } from '@/lib/game/math-generator'
-import { MODE_LABELS, GAME_MODES } from '@/lib/game/types'
+import { MODE_LABELS, MODE_DESCRIPTIONS, GAME_MODES } from '@/lib/game/types'
 import { cn } from '@/lib/utils'
 
 interface ProfileData {
@@ -87,6 +87,21 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   const [showFriendInput, setShowFriendInput] = useState(false)
   const [streak, setStreak] = useState(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const segmentRefs = useRef<Map<GameMode, HTMLButtonElement>>(new Map())
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 })
+
+  useEffect(() => {
+    const el = segmentRefs.current.get(selectedMode)
+    if (!el) return
+    const parent = el.parentElement
+    if (!parent) return
+    const parentRect = parent.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+    setIndicator({
+      left: elRect.left - parentRect.left,
+      width: elRect.width,
+    })
+  }, [selectedMode])
   
   useEffect(() => {
     if (isGuest) return
@@ -235,64 +250,78 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   ]
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-20 lg:py-24">
-      <div className="mb-12 text-center">
-        <h1 className="text-4xl font-medium tracking-tight text-foreground">
+    <div className="mx-auto max-w-[1040px] px-6 py-12 lg:py-16">
+      {/* Header */}
+      <div className="mb-6 text-center">
+        <h1 className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
           {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
         </h1>
-        <p className="mt-3 text-base text-muted-foreground">
+        <p className="mt-2 text-sm text-muted-foreground">
           1v1 math duels — 120 seconds
         </p>
         {!isGuest && (
-          <div className="mt-4 flex items-center justify-center gap-4">
+          <div className="mt-3 flex items-center justify-center gap-4">
             <div className="flex items-center gap-1.5">
-              <Flame className="h-5 w-5 text-orange-500" />
+              <Flame className="h-4 w-4 text-orange-500" />
               <span className="font-mono text-sm font-medium text-foreground">{streak}</span>
             </div>
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-muted-foreground">ELO</span>
-              <span className="font-mono text-lg font-medium text-foreground">{profile.eloProbability}</span>
+              <span className="font-mono text-base font-medium text-foreground">{profile.eloProbability}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Category Selector */}
-      <div className="mb-10 flex flex-wrap justify-center gap-3">
-        {GAME_MODES.map((mode) => (
-          <button
-            key={mode}
-            onClick={() => setSelectedMode(mode)}
-            className={cn(
-              'px-5 py-2.5 text-sm font-medium transition-all border rounded-md',
-              selectedMode === mode
-                ? 'bg-foreground text-background border-foreground shadow-sm'
-                : 'bg-background text-muted-foreground border-border hover:border-foreground/50 hover:text-foreground'
-            )}
-          >
-            {MODE_LABELS[mode]}
-          </button>
-        ))}
+      {/* Mode Selector */}
+      <div className="mb-6 flex flex-col items-center gap-2">
+        <div className="relative inline-flex rounded-lg border border-border bg-card p-1">
+          <div
+            className="absolute top-1 bottom-1 rounded-md bg-foreground shadow-sm transition-all duration-200 ease-out"
+            style={{ left: indicator.left, width: indicator.width }}
+          />
+          {GAME_MODES.map((mode) => (
+            <button
+              key={mode}
+              ref={(el) => { if (el) segmentRefs.current.set(mode, el) }}
+              onClick={() => setSelectedMode(mode)}
+              className={cn(
+                'relative z-10 flex flex-col items-center px-5 py-2 text-sm font-medium transition-colors duration-150 rounded-md',
+                selectedMode === mode
+                  ? 'text-background'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <span>{MODE_LABELS[mode]}</span>
+              <span className={cn(
+                'text-[10px] font-normal leading-tight transition-colors duration-150',
+                selectedMode === mode ? 'text-background/70' : 'text-muted-foreground/60'
+              )}>
+                {MODE_DESCRIPTIONS[mode]}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Play Mode Cards */}
-      <div className="grid gap-6 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         {playModes.map((mode) => {
           const Icon = mode.icon
           return (
             <button
               key={mode.title}
               onClick={mode.onClick}
-              className={`group flex flex-col items-center rounded-xl border border-border bg-card px-10 py-12 text-center transition-all hover:border-foreground/20 hover:shadow-sm ${mode.bg}`}
+              className={`group flex flex-col items-center rounded-xl border border-border bg-card px-6 py-8 text-center transition-all hover:border-foreground/20 hover:shadow-sm ${mode.bg}`}
             >
-              <div className={`mb-5 rounded-full border border-border p-4 transition-colors ${mode.bg}`}>
-                <Icon className={`h-7 w-7 text-muted-foreground transition-colors ${mode.accent}`} />
+              <div className={`mb-4 rounded-full border border-border p-3.5 transition-colors ${mode.bg}`}>
+                <Icon className={`h-6 w-6 text-muted-foreground transition-colors ${mode.accent}`} />
               </div>
-              <span className="text-base font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 {mode.title}
               </span>
-              <span className="mt-2 text-sm text-muted-foreground">
+              <span className="mt-1.5 text-xs text-muted-foreground">
                 {mode.description}
               </span>
             </button>
@@ -302,8 +331,8 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
 
       {/* Challenge a Friend — inline section */}
       {showFriendInput && !outgoing && (
-        <div className="mt-8 rounded-xl border border-border bg-card p-8">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-medium text-foreground">Challenge a friend</span>
             <button
               onClick={() => { setShowFriendInput(false); setChallengeError(null) }}
@@ -319,29 +348,29 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
               onChange={(e) => { setFriendName(e.target.value); setChallengeError(null) }}
               placeholder="Enter username"
               autoFocus
-              className="h-11 flex-1 rounded-md border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+              className="h-10 flex-1 rounded-md border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
             />
             <button
               type="submit"
               disabled={challengeLoading || !friendName.trim()}
-              className="h-11 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-10 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {challengeLoading ? 'Sending...' : 'Challenge'}
             </button>
           </form>
           {challengeError && (
-            <p className="mt-3 text-sm text-destructive">{challengeError}</p>
+            <p className="mt-2 text-sm text-destructive">{challengeError}</p>
           )}
         </div>
       )}
 
       {/* Outgoing challenge waiting state */}
       {outgoing && (
-        <div className="mt-8 flex flex-col items-center rounded-xl border border-border bg-card p-10">
+        <div className="mt-6 flex flex-col items-center rounded-xl border border-border bg-card p-8">
           <p className="text-sm text-foreground">
             Waiting for <span className="font-medium">{outgoing.opponentName}</span> to accept...
           </p>
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
@@ -352,13 +381,12 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
           </div>
           <button
             onClick={handleCancelChallenge}
-            className="mt-5 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+            className="mt-4 text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
           >
             Cancel
           </button>
         </div>
       )}
-
     </div>
   )
 }
