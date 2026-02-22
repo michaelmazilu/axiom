@@ -53,17 +53,34 @@ export const MATCH_DURATION = 120 // seconds
 export const COUNTDOWN_DURATION = 3 // seconds
 
 export const MODE_LABELS: Record<GameMode, string> = {
-  combinatorics: 'Combinatorics',
-  discrete: 'Discrete Probability',
-  conditional: 'Conditional Probability',
-  all: 'All Topics',
+  statistics: 'Statistics',
+  arithmetic: 'Arithmetic',
+  functions: 'Functions',
+  calculus: 'Calculus',
 }
 
 export const MODE_DESCRIPTIONS: Record<GameMode, string> = {
-  combinatorics: 'Counting, permutations, and combinations',
-  discrete: 'Outcomes, sample spaces, and probability counting',
-  conditional: 'Counting under conditions and restrictions',
-  all: 'Mix of all probability topics',
+  statistics: 'Combinatorics, discrete probability, and conditional probability',
+  arithmetic: 'Addition, subtraction, multiplication, and division',
+  functions: 'Roots, expansion, and polynomial manipulation',
+  calculus: 'Derivatives, power rule, and differentiation',
 }
 
-export const GAME_MODES: GameMode[] = ['all', 'combinatorics', 'discrete', 'conditional']
+export const GAME_MODES: GameMode[] = ['statistics', 'arithmetic', 'functions', 'calculus']
+
+/**
+ * Map legacy database mode values to current modes for display.
+ */
+export const LEGACY_MODE_MAP: Record<string, GameMode> = {
+  all: 'statistics',
+  combinatorics: 'statistics',
+  discrete: 'statistics',
+  conditional: 'statistics',
+  probability: 'statistics',
+}
+
+/** Resolve a stored mode string to a current GameMode, handling legacy values. */
+export function resolveMode(stored: string): GameMode {
+  if (GAME_MODES.includes(stored as GameMode)) return stored as GameMode
+  return LEGACY_MODE_MAP[stored] ?? 'statistics'
+}

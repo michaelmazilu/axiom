@@ -15,7 +15,7 @@ export default async function QueuePage({
   const { mode } = await searchParams
   const gameMode: GameMode = GAME_MODES.includes(mode as GameMode)
     ? (mode as GameMode)
-    : 'all'
+    : 'statistics'
 
   return (
     <Suspense

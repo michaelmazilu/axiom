@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json()
   const displayName = (body.displayName ?? '').trim()
-  const mode = GAME_MODES.includes(body.mode) ? body.mode : 'all'
+  const mode = GAME_MODES.includes(body.mode) ? body.mode : 'statistics'
 
   if (!displayName) {
     return NextResponse.json({ error: 'Display name is required' }, { status: 400 })

@@ -96,7 +96,7 @@ export default async function ProfilePage({
         
         hardcodedMatches.push({
           id: `hardcoded-${day}-${game}`,
-          mode: ['all', 'combinatorics', 'discrete', 'conditional'][Math.floor(Math.random() * 4)],
+          mode: ['statistics', 'arithmetic', 'functions', 'calculus'][Math.floor(Math.random() * 4)],
           player1_id: isPlayer1 ? id : opponentId,
           player2_id: isPlayer1 ? opponentId : id,
           player1_score: player1Score,
@@ -135,7 +135,7 @@ export default async function ProfilePage({
       }}
       matches={(matches ?? []).map((m) => ({
         id: m.id || `match-${Math.random()}`,
-        mode: m.mode || 'all',
+        mode: m.mode || 'statistics',
         player1Id: m.player1_id,
         player2Id: m.player2_id,
         player1Score: m.player1_score,

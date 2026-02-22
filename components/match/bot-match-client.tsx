@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { generateProblems } from '@/lib/game/math-generator'
 import type { GameMode, MathProblem } from '@/lib/game/math-generator'
+import { checkAnswer } from '@/lib/game/answer-check'
 import { MATCH_DURATION, COUNTDOWN_DURATION, MODE_LABELS } from '@/lib/game/types'
 import { GameTimer } from './game-timer'
 import { ProblemDisplay } from './problem-display'
@@ -207,8 +208,7 @@ export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
     const problem = lockedProblemRef.current || problemsRef.current[lockedIndexRef.current]
     if (!problem) return
 
-    const numAnswer = parseFloat(answer)
-    const correct = Math.abs(numAnswer - problem.answer) < 0.01
+    const correct = checkAnswer(problem, answer)
 
     if (correct) {
       const points = problem.difficulty
@@ -319,13 +319,17 @@ export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
         <form onSubmit={handleSubmit} className="mt-10 w-full max-w-xs">
           <input
             ref={inputRef}
-            type="number"
-            step="any"
+            type="text"
+            inputMode={mode === 'functions' || mode === 'calculus' ? 'text' : 'decimal'}
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
-            placeholder="Your answer"
+            placeholder={mode === 'functions' || mode === 'calculus' ? 'e.g. 3x^2 - x + 1' : 'Your answer'}
             autoFocus
-            className="h-14 w-full rounded-lg border border-border bg-card px-4 text-center font-mono text-2xl text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            className="h-14 w-full rounded-lg border border-border bg-card px-4 text-center font-mono text-2xl text-foreground placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
           />
           <button type="submit" className="sr-only">
             Submit

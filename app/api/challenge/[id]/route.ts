@@ -46,7 +46,7 @@ export async function POST(
   const challengedElo = (challenged.elo_probability ?? 800) as number
   const seed = generateMatchSeed()
 
-  const mode = challenge.mode ?? 'all'
+  const mode = challenge.mode ?? 'statistics'
 
   const { data: match, error: matchError } = await supabase
     .from('matches')

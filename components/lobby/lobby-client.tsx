@@ -79,7 +79,7 @@ function calculateStreak(matchDates: string[]): number {
 
 export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   const router = useRouter()
-  const [selectedMode, setSelectedMode] = useState<GameMode>('all')
+  const [selectedMode, setSelectedMode] = useState<GameMode>('statistics')
   const [friendName, setFriendName] = useState('')
   const [challengeLoading, setChallengeLoading] = useState(false)
   const [challengeError, setChallengeError] = useState<string | null>(null)
@@ -241,7 +241,7 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
           {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
         </h1>
         <p className="mt-3 text-base text-muted-foreground">
-          1v1 probability duels - 120 seconds
+          1v1 math duels — 120 seconds
         </p>
         {!isGuest && (
           <div className="mt-4 flex items-center justify-center gap-4">

@@ -5,7 +5,7 @@ export function LandingHero() {
     <section className="flex flex-col items-center px-6 pt-24 pb-20 text-center lg:pt-36 lg:pb-28">
       <div className="mb-6 inline-flex items-center rounded-full border border-border bg-secondary px-4 py-1.5">
         <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          1v1 Probability Duels
+          1v1 Math Duels
         </span>
       </div>
 

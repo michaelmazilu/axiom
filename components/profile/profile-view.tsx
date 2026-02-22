@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
-import { MODE_LABELS } from '@/lib/game/types'
-import type { GameMode } from '@/lib/game/math-generator'
+import { MODE_LABELS, resolveMode } from '@/lib/game/types'
 
 interface ProfileData {
   id: string
@@ -62,7 +61,7 @@ export function ProfileView({
       {/* ELO rating */}
       <div className="mb-12">
         <div className="rounded-lg border border-border bg-card px-6 py-5">
-          <span className="text-xs text-muted-foreground">Probability ELO</span>
+          <span className="text-xs text-muted-foreground">ELO</span>
           <div className="mt-1 font-mono text-2xl font-medium text-foreground">
             {profile.eloProbability}
           </div>
@@ -110,7 +109,7 @@ export function ProfileView({
                     {won ? 'WIN' : lost ? 'LOSS' : 'DRAW'}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {MODE_LABELS[match.mode as GameMode] ?? match.mode}
+                    {MODE_LABELS[resolveMode(match.mode)]}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">

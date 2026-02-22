@@ -1,10 +1,10 @@
 const examples = [
-  { label: 'Counting', example: '4 coins flipped. Total outcomes?' },
-  { label: 'Combinations', example: 'C(8, 3) = ?' },
-  { label: 'Permutations', example: 'P(7, 3) = ?' },
-  { label: 'Dice', example: '2 dice: ways to get sum 7?' },
-  { label: 'Arrangements', example: '6 people line up. Person A first.' },
-  { label: 'Grid Paths', example: '3 right, 2 down. Shortest paths?' },
+  { label: 'Statistics', example: 'C(8, 3) = ?' },
+  { label: 'Statistics', example: '2 dice: ways to get sum 7?' },
+  { label: 'Arithmetic', example: '17 × 8 - 23 = ?' },
+  { label: 'Arithmetic', example: '144 ÷ 12 = ?' },
+  { label: 'Functions', example: 'Expand: (x + 3)(x - 2)' },
+  { label: 'Calculus', example: 'd/dx (3x² + 2x) = ?' },
 ]
 
 export function LandingModes() {
@@ -13,10 +13,10 @@ export function LandingModes() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-14 text-center">
           <h2 className="text-2xl font-medium tracking-tight text-foreground sm:text-3xl text-balance">
-            Pure probability
+            Four game modes
           </h2>
           <p className="mt-3 text-sm text-muted-foreground">
-            Counting, combinations, permutations, and chance — difficulty scales as you solve
+            Statistics, arithmetic, functions, and calculus — difficulty scales as you solve
           </p>
         </div>
 

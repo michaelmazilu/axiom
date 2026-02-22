@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { MatchClient } from '@/components/match/match-client'
-import type { GameMode } from '@/lib/game/math-generator'
+import { resolveMode } from '@/lib/game/types'
 
 export const metadata = {
   title: 'Match',
@@ -53,7 +53,7 @@ export default async function MatchPage({
   return (
     <MatchClient
       matchId={match.id}
-      mode={match.mode as GameMode}
+      mode={resolveMode(match.mode)}
       seed={match.seed}
       currentUserId={user.id}
       isPlayer1={isPlayer1}

@@ -23,7 +23,7 @@ export function MatchResults({ result, currentUserId }: MatchResultsProps) {
     <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-6 py-12">
       {/* Outcome */}
       <div className="mb-2 text-sm uppercase tracking-widest text-muted-foreground">
-        {MODE_LABELS[result.mode] ?? 'Probability'}
+        {MODE_LABELS[result.mode]}
       </div>
       <h1
         className={cn(

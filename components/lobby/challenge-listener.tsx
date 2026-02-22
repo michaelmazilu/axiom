@@ -95,7 +95,7 @@ export function ChallengeListener({ userId }: { userId: string }) {
           challenged you!
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          1v1 Probability Duel
+          1v1 Math Duel
         </p>
 
         <div className="mt-4 flex gap-2">

@@ -10,11 +10,11 @@ const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    default: 'Axiom — 1v1 Probability Duels',
+    default: 'Axiom — 1v1 Math Duels',
     template: '%s | Axiom',
   },
   description:
-    'Real-time 1v1 competitive probability battles. Counting, combinations, and chance — 120 seconds, pure skill.',
+    'Real-time 1v1 competitive math battles. Statistics, arithmetic, functions, and calculus — 120 seconds, pure skill.',
   icons: {
     icon: { url: '/favicon.svg', type: 'image/svg+xml' },
     apple: '/apple-icon.svg',

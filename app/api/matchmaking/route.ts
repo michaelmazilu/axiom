@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const mode = GAME_MODES.includes(body.mode) ? body.mode : 'all'
+  const mode = GAME_MODES.includes(body.mode) ? body.mode : 'statistics'
 
   const { data: profile } = await supabase
     .from('profiles')

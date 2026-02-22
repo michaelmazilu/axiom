@@ -1,10 +1,12 @@
 import { createSeededRandom } from './seeded-random'
+import { formatPolynomial } from './expression'
 
-export type GameMode = 'combinatorics' | 'discrete' | 'conditional' | 'all'
+export type GameMode = 'statistics' | 'arithmetic' | 'functions' | 'calculus'
 
 export interface MathProblem {
   question: string
   answer: number
+  expressionAnswer?: string // canonical polynomial string for expression-type answers
   difficulty: number // 1-5
 }
 
@@ -31,19 +33,25 @@ export function generateProblems(
 
     let problem: MathProblem
 
-    if (mode === 'all') {
-      const cat = Math.floor(rng() * 3)
-      problem = cat === 0
-        ? genCombinatorics(rng, difficulty)
-        : cat === 1
-          ? genDiscrete(rng, difficulty)
-          : genConditional(rng, difficulty)
-    } else if (mode === 'combinatorics') {
-      problem = genCombinatorics(rng, difficulty)
-    } else if (mode === 'discrete') {
-      problem = genDiscrete(rng, difficulty)
-    } else {
-      problem = genConditional(rng, difficulty)
+    switch (mode) {
+      case 'statistics': {
+        const cat = Math.floor(rng() * 3)
+        problem = cat === 0
+          ? genCombinatorics(rng, difficulty)
+          : cat === 1
+            ? genDiscrete(rng, difficulty)
+            : genConditional(rng, difficulty)
+        break
+      }
+      case 'arithmetic':
+        problem = genArithmetic(rng, difficulty)
+        break
+      case 'functions':
+        problem = genFunctions(rng, difficulty)
+        break
+      case 'calculus':
+        problem = genCalculus(rng, difficulty)
+        break
     }
 
     if (!seen.has(problem.question)) {
@@ -78,7 +86,11 @@ function pick<T>(rng: () => number, arr: T[]): T {
   return arr[Math.floor(rng() * arr.length)]
 }
 
-// ── COMBINATORICS ────────────────────────────────────
+function intBetween(rng: () => number, min: number, max: number): number {
+  return Math.floor(rng() * (max - min + 1)) + min
+}
+
+// ── COMBINATORICS (Statistics sub-generator) ────────────────────
 
 function genCombinatorics(rng: () => number, difficulty: number): MathProblem {
   if (difficulty <= 1) {
@@ -217,7 +229,7 @@ function genNotInSeat(rng: () => number): MathProblem {
   }
 }
 
-// ── DISCRETE PROBABILITY ─────────────────────────────
+// ── DISCRETE PROBABILITY (Statistics sub-generator) ─────────────
 
 function genDiscrete(rng: () => number, difficulty: number): MathProblem {
   if (difficulty <= 1) {
@@ -367,7 +379,7 @@ function genNoSixes(rng: () => number): MathProblem {
   }
 }
 
-// ── CONDITIONAL PROBABILITY ──────────────────────────
+// ── CONDITIONAL PROBABILITY (Statistics sub-generator) ──────────
 
 function genConditional(rng: () => number, difficulty: number): MathProblem {
   if (difficulty <= 1) {
@@ -507,4 +519,643 @@ function genGivenAdjacent(rng: () => number): MathProblem {
     answer: 2 * factorial(n - 1),
     difficulty: 5,
   }
+}
+
+// ── ARITHMETIC ──────────────────────────────────────────────────
+
+function genArithmetic(rng: () => number, difficulty: number): MathProblem {
+  if (difficulty <= 1) {
+    return pick(rng, [
+      () => genSimpleAdd(rng),
+      () => genSimpleSub(rng),
+      () => genTinyMul(rng),
+    ])()
+  }
+  if (difficulty <= 2) {
+    return pick(rng, [
+      () => genMediumAdd(rng),
+      () => genMediumSub(rng),
+      () => genSimpleMul(rng),
+    ])()
+  }
+  if (difficulty <= 3) {
+    return pick(rng, [
+      () => genLargerMul(rng),
+      () => genSimpleDiv(rng),
+      () => genTwoStepAdd(rng),
+    ])()
+  }
+  if (difficulty <= 4) {
+    return pick(rng, [
+      () => genMultiStep(rng),
+      () => genLargerDiv(rng),
+      () => genMixedOps(rng),
+    ])()
+  }
+  return pick(rng, [
+    () => genComplexExpr(rng),
+    () => genSquareCalc(rng),
+    () => genChainMul(rng),
+  ])()
+}
+
+function genSimpleAdd(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 9)
+  const b = intBetween(rng, 2, 9)
+  return { question: `${a} + ${b} = ?`, answer: a + b, difficulty: 1 }
+}
+
+function genSimpleSub(rng: () => number): MathProblem {
+  const a = intBetween(rng, 5, 15)
+  const b = intBetween(rng, 1, a - 1)
+  return { question: `${a} - ${b} = ?`, answer: a - b, difficulty: 1 }
+}
+
+function genTinyMul(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 5)
+  const b = intBetween(rng, 2, 5)
+  return { question: `${a} × ${b} = ?`, answer: a * b, difficulty: 1 }
+}
+
+function genMediumAdd(rng: () => number): MathProblem {
+  const a = intBetween(rng, 10, 99)
+  const b = intBetween(rng, 10, 99)
+  return { question: `${a} + ${b} = ?`, answer: a + b, difficulty: 2 }
+}
+
+function genMediumSub(rng: () => number): MathProblem {
+  const a = intBetween(rng, 30, 99)
+  const b = intBetween(rng, 10, a - 1)
+  return { question: `${a} - ${b} = ?`, answer: a - b, difficulty: 2 }
+}
+
+function genSimpleMul(rng: () => number): MathProblem {
+  const a = intBetween(rng, 3, 9)
+  const b = intBetween(rng, 3, 9)
+  return { question: `${a} × ${b} = ?`, answer: a * b, difficulty: 2 }
+}
+
+function genLargerMul(rng: () => number): MathProblem {
+  const a = intBetween(rng, 11, 25)
+  const b = intBetween(rng, 3, 9)
+  return { question: `${a} × ${b} = ?`, answer: a * b, difficulty: 3 }
+}
+
+function genSimpleDiv(rng: () => number): MathProblem {
+  const b = intBetween(rng, 2, 9)
+  const quotient = intBetween(rng, 2, 12)
+  const a = b * quotient
+  return { question: `${a} ÷ ${b} = ?`, answer: quotient, difficulty: 3 }
+}
+
+function genTwoStepAdd(rng: () => number): MathProblem {
+  const a = intBetween(rng, 10, 50)
+  const b = intBetween(rng, 10, 50)
+  const c = intBetween(rng, 10, 50)
+  return { question: `${a} + ${b} + ${c} = ?`, answer: a + b + c, difficulty: 3 }
+}
+
+function genMultiStep(rng: () => number): MathProblem {
+  const a = intBetween(rng, 3, 12)
+  const b = intBetween(rng, 3, 9)
+  const c = intBetween(rng, 5, 30)
+  return { question: `${a} × ${b} + ${c} = ?`, answer: a * b + c, difficulty: 4 }
+}
+
+function genLargerDiv(rng: () => number): MathProblem {
+  const b = intBetween(rng, 4, 15)
+  const quotient = intBetween(rng, 5, 20)
+  const a = b * quotient
+  return { question: `${a} ÷ ${b} = ?`, answer: quotient, difficulty: 4 }
+}
+
+function genMixedOps(rng: () => number): MathProblem {
+  const a = intBetween(rng, 3, 9)
+  const b = intBetween(rng, 3, 9)
+  const c = intBetween(rng, 2, 5)
+  const d = intBetween(rng, 2, 5)
+  return { question: `${a} × ${b} - ${c} × ${d} = ?`, answer: a * b - c * d, difficulty: 4 }
+}
+
+function genComplexExpr(rng: () => number): MathProblem {
+  const a = intBetween(rng, 10, 30)
+  const b = intBetween(rng, 3, 9)
+  const c = intBetween(rng, 10, 50)
+  return { question: `${a} × ${b} - ${c} = ?`, answer: a * b - c, difficulty: 5 }
+}
+
+function genSquareCalc(rng: () => number): MathProblem {
+  const a = intBetween(rng, 5, 15)
+  const b = intBetween(rng, 5, 30)
+  return { question: `${a}² + ${b} = ?`, answer: a * a + b, difficulty: 5 }
+}
+
+function genChainMul(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 6)
+  const b = intBetween(rng, 2, 6)
+  const c = intBetween(rng, 2, 6)
+  return { question: `${a} × ${b} × ${c} = ?`, answer: a * b * c, difficulty: 5 }
+}
+
+// ── FUNCTIONS ───────────────────────────────────────────────────
+
+function genFunctions(rng: () => number, difficulty: number): MathProblem {
+  if (difficulty <= 1) {
+    return pick(rng, [
+      () => genLinearRootEasy(rng),
+      () => genEvaluateLinear(rng),
+    ])()
+  }
+  if (difficulty <= 2) {
+    return pick(rng, [
+      () => genLinearRoot(rng),
+      () => genSimpleFOIL(rng),
+      () => genEvaluateQuadratic(rng),
+    ])()
+  }
+  if (difficulty <= 3) {
+    return pick(rng, [
+      () => genQuadraticRootSimple(rng),
+      () => genExpandBinomials(rng),
+      () => genLinearSystemValue(rng),
+    ])()
+  }
+  if (difficulty <= 4) {
+    return pick(rng, [
+      () => genQuadraticRootGeneral(rng),
+      () => genExpandWithCoeff(rng),
+      () => genCubicExpand(rng),
+    ])()
+  }
+  return pick(rng, [
+    () => genTripleExpand(rng),
+    () => genCubicRoot(rng),
+    () => genExpandSquared(rng),
+  ])()
+}
+
+function genLinearRootEasy(rng: () => number): MathProblem {
+  const root = intBetween(rng, 1, 9)
+  const a = 1
+  const b = -root
+  return {
+    question: `Solve: x + ${b < 0 ? `(${b})` : b} = 0`,
+    answer: root,
+    difficulty: 1,
+  }
+}
+
+function genEvaluateLinear(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 5)
+  const b = intBetween(rng, -5, 10)
+  const x = intBetween(rng, 1, 5)
+  const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`
+  return {
+    question: `f(x) = ${a}x ${bStr}. Find f(${x}).`,
+    answer: a * x + b,
+    difficulty: 1,
+  }
+}
+
+function genLinearRoot(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 6)
+  const root = intBetween(rng, -5, 5)
+  if (root === 0) return genLinearRoot(rng)
+  const b = -a * root
+  const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`
+  return {
+    question: `Solve: ${a}x ${bStr} = 0`,
+    answer: root,
+    difficulty: 2,
+  }
+}
+
+function genSimpleFOIL(rng: () => number): MathProblem {
+  const a = intBetween(rng, 1, 4)
+  const b = intBetween(rng, 1, 4)
+  // (x + a)(x + b) = x^2 + (a+b)x + ab
+  const coeffs = [a * b, a + b, 1]
+  const bStrA = a >= 0 ? `+ ${a}` : `- ${Math.abs(a)}`
+  const bStrB = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`
+  return {
+    question: `Expand: (x ${bStrA})(x ${bStrB})`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(coeffs),
+    difficulty: 2,
+  }
+}
+
+function genEvaluateQuadratic(rng: () => number): MathProblem {
+  const a = 1
+  const b = intBetween(rng, -3, 3)
+  const c = intBetween(rng, -5, 5)
+  const x = intBetween(rng, -2, 3)
+  const bStr = b >= 0 ? `+ ${b}x` : `- ${Math.abs(b)}x`
+  const cStr = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`
+  return {
+    question: `f(x) = x² ${bStr} ${cStr}. Find f(${x}).`,
+    answer: a * x * x + b * x + c,
+    difficulty: 2,
+  }
+}
+
+function genQuadraticRootSimple(rng: () => number): MathProblem {
+  const root = intBetween(rng, 1, 7)
+  return {
+    question: `Find the positive root: x² - ${root * root} = 0`,
+    answer: root,
+    difficulty: 3,
+  }
+}
+
+function genExpandBinomials(rng: () => number): MathProblem {
+  const a = intBetween(rng, -4, 4)
+  const b = intBetween(rng, -4, 4)
+  if (a === 0 || b === 0) return genExpandBinomials(rng)
+  // (x + a)(x + b)
+  const coeffs = [a * b, a + b, 1]
+  const aStr = a >= 0 ? `+ ${a}` : `- ${Math.abs(a)}`
+  const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`
+  return {
+    question: `Expand: (x ${aStr})(x ${bStr})`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(coeffs),
+    difficulty: 3,
+  }
+}
+
+function genLinearSystemValue(rng: () => number): MathProblem {
+  const x = intBetween(rng, -3, 5)
+  const a = intBetween(rng, 2, 4)
+  const b = intBetween(rng, 1, 6)
+  const result = a * x + b
+  const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`
+  return {
+    question: `If ${a}x ${bStr} = ${result}, find x.`,
+    answer: x,
+    difficulty: 3,
+  }
+}
+
+function genQuadraticRootGeneral(rng: () => number): MathProblem {
+  const r1 = intBetween(rng, 1, 6)
+  const r2 = intBetween(rng, -6, -1)
+  // x^2 - (r1+r2)x + r1*r2 = 0, positive root is r1
+  const b = -(r1 + r2)
+  const c = r1 * r2
+  const bStr = b >= 0 ? `+ ${b}x` : `- ${Math.abs(b)}x`
+  const cStr = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`
+  return {
+    question: `Find the positive root: x² ${bStr} ${cStr} = 0`,
+    answer: r1,
+    difficulty: 4,
+  }
+}
+
+function genExpandWithCoeff(rng: () => number): MathProblem {
+  const k = intBetween(rng, 2, 3)
+  const a = intBetween(rng, 1, 4)
+  const b = intBetween(rng, -3, 3)
+  if (b === 0) return genExpandWithCoeff(rng)
+  // (kx + a)(x + b) = kx^2 + (kb + a)x + ab
+  const coeffs = [a * b, k * b + a, k]
+  const aStr = a >= 0 ? `+ ${a}` : `- ${Math.abs(a)}`
+  const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`
+  return {
+    question: `Expand: (${k}x ${aStr})(x ${bStr})`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(coeffs),
+    difficulty: 4,
+  }
+}
+
+function genCubicExpand(rng: () => number): MathProblem {
+  const a = intBetween(rng, -3, 3)
+  if (a === 0) return genCubicExpand(rng)
+  // (x + a)(x^2) = x^3 + ax^2
+  const bCoeff = intBetween(rng, -2, 2)
+  // (x + a)(x^2 + bx) = x^3 + (a+b)x^2 + abx
+  const coeffs = [0, a * bCoeff, a + bCoeff, 1]
+  const aStr = a >= 0 ? `+ ${a}` : `- ${Math.abs(a)}`
+  const bStr = bCoeff === 0 ? '' : bCoeff > 0 ? ` + ${bCoeff}x` : ` - ${Math.abs(bCoeff)}x`
+  return {
+    question: `Expand: (x ${aStr})(x²${bStr})`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(coeffs),
+    difficulty: 4,
+  }
+}
+
+function genTripleExpand(rng: () => number): MathProblem {
+  const a = intBetween(rng, 1, 3)
+  const b = intBetween(rng, -3, -1)
+  const c = intBetween(rng, 1, 3)
+  // (x+a)(x+b)(x+c) first: (x+a)(x+b) = x^2 + (a+b)x + ab
+  // then multiply by (x+c):
+  // x^3 + (a+b+c)x^2 + (ab+ac+bc)x + abc
+  const coeffs = [a * b * c, a * b + a * c + b * c, a + b + c, 1]
+  const aStr = a >= 0 ? `+ ${a}` : `- ${Math.abs(a)}`
+  const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`
+  const cStr = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`
+  return {
+    question: `Expand: (x ${aStr})(x ${bStr})(x ${cStr})`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(coeffs),
+    difficulty: 5,
+  }
+}
+
+function genCubicRoot(rng: () => number): MathProblem {
+  const root = intBetween(rng, 1, 4)
+  return {
+    question: `Find the positive root: x³ - ${root * root * root} = 0`,
+    answer: root,
+    difficulty: 5,
+  }
+}
+
+function genExpandSquared(rng: () => number): MathProblem {
+  const a = intBetween(rng, -4, 4)
+  if (a === 0) return genExpandSquared(rng)
+  // (x + a)^2 = x^2 + 2ax + a^2
+  const coeffs = [a * a, 2 * a, 1]
+  const aStr = a >= 0 ? `+ ${a}` : `- ${Math.abs(a)}`
+  return {
+    question: `Expand: (x ${aStr})²`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(coeffs),
+    difficulty: 5,
+  }
+}
+
+// ── CALCULUS ────────────────────────────────────────────────────
+
+function genCalculus(rng: () => number, difficulty: number): MathProblem {
+  if (difficulty <= 1) {
+    return pick(rng, [
+      () => genPowerRuleSimple(rng),
+      () => genConstantDeriv(rng),
+      () => genLinearDeriv(rng),
+    ])()
+  }
+  if (difficulty <= 2) {
+    return pick(rng, [
+      () => genPowerRuleCoeff(rng),
+      () => genQuadraticDeriv(rng),
+      () => genPowerRuleMedium(rng),
+    ])()
+  }
+  if (difficulty <= 3) {
+    return pick(rng, [
+      () => genPolynomialDeriv(rng),
+      () => genHigherPowerDeriv(rng),
+      () => genExpDerivEval(rng),
+    ])()
+  }
+  if (difficulty <= 4) {
+    return pick(rng, [
+      () => genLongerPolyDeriv(rng),
+      () => genTrigDerivEval(rng),
+      () => genLogDerivEval(rng),
+    ])()
+  }
+  return pick(rng, [
+    () => genChainPowerDeriv(rng),
+    () => genProductDerivEval(rng),
+    () => genFullPolyDeriv(rng),
+  ])()
+}
+
+function genConstantDeriv(rng: () => number): MathProblem {
+  const c = intBetween(rng, 2, 20)
+  return {
+    question: `d/dx (${c}) = ?`,
+    answer: 0,
+    difficulty: 1,
+  }
+}
+
+function genLinearDeriv(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 9)
+  return {
+    question: `d/dx (${a}x) = ?`,
+    answer: a,
+    difficulty: 1,
+  }
+}
+
+function genPowerRuleSimple(rng: () => number): MathProblem {
+  const n = intBetween(rng, 2, 4)
+  // d/dx(x^n) = nx^(n-1)
+  const derivCoeffs: number[] = new Array(n).fill(0)
+  derivCoeffs[n - 1] = n
+  return {
+    question: `d/dx (x${supNum(n)}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 1,
+  }
+}
+
+function genPowerRuleCoeff(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 6)
+  const n = intBetween(rng, 2, 3)
+  // d/dx(ax^n) = anx^(n-1)
+  const derivCoeffs: number[] = new Array(n).fill(0)
+  derivCoeffs[n - 1] = a * n
+  return {
+    question: `d/dx (${a}x${supNum(n)}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 2,
+  }
+}
+
+function genQuadraticDeriv(rng: () => number): MathProblem {
+  const a = intBetween(rng, 1, 5)
+  const b = intBetween(rng, -5, 5)
+  if (b === 0) return genQuadraticDeriv(rng)
+  // d/dx(ax^2 + bx) = 2ax + b
+  const derivCoeffs = [b, 2 * a]
+  const bStr = b > 0 ? `+ ${b}x` : `- ${Math.abs(b)}x`
+  return {
+    question: `d/dx (${a === 1 ? '' : a}x² ${bStr}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 2,
+  }
+}
+
+function genPowerRuleMedium(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 5)
+  const n = intBetween(rng, 3, 4)
+  const b = intBetween(rng, 1, 6)
+  // d/dx(ax^n + b) = anx^(n-1)
+  const derivCoeffs: number[] = new Array(n).fill(0)
+  derivCoeffs[n - 1] = a * n
+  const bStr = `+ ${b}`
+  return {
+    question: `d/dx (${a}x${supNum(n)} ${bStr}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 2,
+  }
+}
+
+function genPolynomialDeriv(rng: () => number): MathProblem {
+  const a = intBetween(rng, 1, 4)
+  const b = intBetween(rng, -4, 4)
+  const c = intBetween(rng, -5, 5)
+  if (b === 0 && c === 0) return genPolynomialDeriv(rng)
+  // d/dx(ax^2 + bx + c) = 2ax + b
+  const derivCoeffs = [b, 2 * a]
+  const bStr = b >= 0 ? `+ ${b}x` : `- ${Math.abs(b)}x`
+  const cStr = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`
+  return {
+    question: `d/dx (${a === 1 ? '' : a}x² ${bStr} ${cStr}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 3,
+  }
+}
+
+function genHigherPowerDeriv(rng: () => number): MathProblem {
+  const a = intBetween(rng, 1, 3)
+  const n = intBetween(rng, 3, 5)
+  const b = intBetween(rng, -3, 3)
+  if (b === 0) return genHigherPowerDeriv(rng)
+  // d/dx(ax^n + bx) = anx^(n-1) + b
+  const derivCoeffs: number[] = new Array(n).fill(0)
+  derivCoeffs[n - 1] = a * n
+  derivCoeffs[0] = b
+  const bStr = b > 0 ? `+ ${b}x` : `- ${Math.abs(b)}x`
+  return {
+    question: `d/dx (${a === 1 ? '' : a}x${supNum(n)} ${bStr}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 3,
+  }
+}
+
+function genExpDerivEval(rng: () => number): MathProblem {
+  // d/dx(e^x) = e^x, evaluate at x = 0 → 1
+  return {
+    question: `f(x) = eˣ. Find f'(0).`,
+    answer: 1,
+    difficulty: 3,
+  }
+}
+
+function genLongerPolyDeriv(rng: () => number): MathProblem {
+  const a = intBetween(rng, 1, 3)
+  const b = intBetween(rng, -3, 3)
+  const c = intBetween(rng, -4, 4)
+  const d = intBetween(rng, -5, 5)
+  if (b === 0 && c === 0) return genLongerPolyDeriv(rng)
+  // d/dx(ax^3 + bx^2 + cx + d) = 3ax^2 + 2bx + c
+  const derivCoeffs = [c, 2 * b, 3 * a]
+  const bStr = b >= 0 ? `+ ${b}x²` : `- ${Math.abs(b)}x²`
+  const cStr = c >= 0 ? `+ ${c}x` : `- ${Math.abs(c)}x`
+  const dStr = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`
+  return {
+    question: `d/dx (${a === 1 ? '' : a}x³ ${bStr} ${cStr} ${dStr}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 4,
+  }
+}
+
+function genTrigDerivEval(rng: () => number): MathProblem {
+  const variant = Math.floor(rng() * 4)
+  if (variant === 0) {
+    // d/dx(sin x) at x=0 → cos(0) = 1
+    return { question: `f(x) = sin(x). Find f'(0).`, answer: 1, difficulty: 4 }
+  }
+  if (variant === 1) {
+    // d/dx(cos x) at x=0 → -sin(0) = 0
+    return { question: `f(x) = cos(x). Find f'(0).`, answer: 0, difficulty: 4 }
+  }
+  if (variant === 2) {
+    // d/dx(sin x) at x=π → cos(π) = -1
+    return { question: `f(x) = sin(x). Find f'(π).`, answer: -1, difficulty: 4 }
+  }
+  // d/dx(cos x) at x=π → -sin(π) = 0
+  return { question: `f(x) = cos(x). Find f'(π).`, answer: 0, difficulty: 4 }
+}
+
+function genLogDerivEval(rng: () => number): MathProblem {
+  const x = intBetween(rng, 1, 5)
+  // d/dx(ln x) = 1/x
+  const answer = parseFloat((1 / x).toFixed(4))
+  return {
+    question: `f(x) = ln(x). Find f'(${x}).`,
+    answer,
+    difficulty: 4,
+  }
+}
+
+function genChainPowerDeriv(rng: () => number): MathProblem {
+  const a = intBetween(rng, 2, 4)
+  const n = intBetween(rng, 4, 6)
+  const b = intBetween(rng, -3, 3)
+  const c = intBetween(rng, -3, 3)
+  if (b === 0 && c === 0) return genChainPowerDeriv(rng)
+  // d/dx(ax^n + bx^2 + cx) = anx^(n-1) + 2bx + c
+  const derivCoeffs: number[] = new Array(n).fill(0)
+  derivCoeffs[n - 1] = a * n
+  derivCoeffs[1] = 2 * b
+  derivCoeffs[0] = c
+  const bStr = b >= 0 ? `+ ${b}x²` : `- ${Math.abs(b)}x²`
+  const cStr = c >= 0 ? `+ ${c}x` : `- ${Math.abs(c)}x`
+  return {
+    question: `d/dx (${a}x${supNum(n)} ${bStr} ${cStr}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 5,
+  }
+}
+
+function genProductDerivEval(rng: () => number): MathProblem {
+  // d/dx(x * e^x) at x = 0 → e^0 + 0*e^0 = 1
+  const variant = Math.floor(rng() * 3)
+  if (variant === 0) {
+    return { question: `f(x) = x·eˣ. Find f'(0).`, answer: 1, difficulty: 5 }
+  }
+  if (variant === 1) {
+    // d/dx(x^2 * e^x) at x=0 → 2*0*e^0 + 0^2*e^0 = 0
+    return { question: `f(x) = x²·eˣ. Find f'(0).`, answer: 0, difficulty: 5 }
+  }
+  // d/dx(x * ln(x)) at x=1 → ln(1) + 1 = 1
+  return { question: `f(x) = x·ln(x). Find f'(1).`, answer: 1, difficulty: 5 }
+}
+
+function genFullPolyDeriv(rng: () => number): MathProblem {
+  const a = intBetween(rng, 1, 2)
+  const b = intBetween(rng, -3, 3)
+  const c = intBetween(rng, -3, 3)
+  const d = intBetween(rng, -4, 4)
+  const e = intBetween(rng, -5, 5)
+  if (b === 0 && c === 0 && d === 0) return genFullPolyDeriv(rng)
+  // d/dx(ax^4 + bx^3 + cx^2 + dx + e) = 4ax^3 + 3bx^2 + 2cx + d
+  const derivCoeffs = [d, 2 * c, 3 * b, 4 * a]
+  const bStr = b >= 0 ? `+ ${b}x³` : `- ${Math.abs(b)}x³`
+  const cStr = c >= 0 ? `+ ${c}x²` : `- ${Math.abs(c)}x²`
+  const dStr = d >= 0 ? `+ ${d}x` : `- ${Math.abs(d)}x`
+  const eStr = e >= 0 ? `+ ${e}` : `- ${Math.abs(e)}`
+  return {
+    question: `d/dx (${a === 1 ? '' : a}x⁴ ${bStr} ${cStr} ${dStr} ${eStr}) = ?`,
+    answer: 0,
+    expressionAnswer: formatPolynomial(derivCoeffs),
+    difficulty: 5,
+  }
+}
+
+// ── Display helpers ─────────────────────────────────────────────
+
+function supNum(n: number): string {
+  const sup: Record<string, string> = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+  }
+  return String(n).split('').map(c => sup[c] ?? c).join('')
 }
