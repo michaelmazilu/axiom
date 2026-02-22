@@ -33,13 +33,92 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
     async function fetchPerformanceData() {
       const supabase = createClient()
       
-      // Fetch user's completed matches
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('player1_id, player2_id, player1_score, player2_score, winner_id, status, completed_at, created_at')
-        .eq('status', 'completed')
-        .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
-        .order('created_at', { ascending: false })
+      // Check if this is ruppy_k user
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', userId)
+        .single()
+      
+      const isRuppyK = profile?.display_name === 'ruppy_k'
+      const opponentId = '00000000-0000-0000-0000-000000000000' // Dummy opponent ID
+      
+      let matches
+      if (isRuppyK) {
+        // Hardcoded data for ruppy_k: 5 days, 6 games per day, more wins than losses
+        const now = new Date()
+        const hardcodedMatches = []
+        
+        // Generate 30 matches across 5 days (6 per day)
+        // More wins than losses: 18 wins, 10 losses, 2 draws
+        const results = [
+          ...Array(18).fill('win'),
+          ...Array(10).fill('loss'),
+          ...Array(2).fill('draw')
+        ]
+        
+        // Shuffle results for randomness
+        for (let i = results.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [results[i], results[j]] = [results[j], results[i]]
+        }
+        
+        let resultIndex = 0
+        for (let day = 0; day < 5; day++) {
+          const date = new Date(now)
+          date.setDate(date.getDate() - day)
+          date.setHours(12, 0, 0, 0) // Set to noon
+          
+          for (let game = 0; game < 6; game++) {
+            const gameTime = new Date(date)
+            gameTime.setHours(12 + game, 0, 0, 0) // Spread games throughout the day
+            
+            const result = results[resultIndex++]
+            const isPlayer1 = Math.random() > 0.5
+            
+            let player1Score, player2Score, winnerId
+            if (result === 'win') {
+              player1Score = isPlayer1 ? 15 + Math.floor(Math.random() * 10) : 5 + Math.floor(Math.random() * 8)
+              player2Score = isPlayer1 ? 5 + Math.floor(Math.random() * 8) : 15 + Math.floor(Math.random() * 10)
+              winnerId = userId
+            } else if (result === 'loss') {
+              player1Score = isPlayer1 ? 5 + Math.floor(Math.random() * 8) : 15 + Math.floor(Math.random() * 10)
+              player2Score = isPlayer1 ? 15 + Math.floor(Math.random() * 10) : 5 + Math.floor(Math.random() * 8)
+              winnerId = opponentId
+            } else { // draw
+              const score = 8 + Math.floor(Math.random() * 6)
+              player1Score = isPlayer1 ? score : score
+              player2Score = isPlayer1 ? score : score
+              winnerId = null
+            }
+            
+            hardcodedMatches.push({
+              player1_id: isPlayer1 ? userId : opponentId,
+              player2_id: isPlayer1 ? opponentId : userId,
+              player1_score: player1Score,
+              player2_score: player2Score,
+              winner_id: winnerId,
+              status: 'completed',
+              completed_at: gameTime.toISOString(),
+              created_at: gameTime.toISOString(),
+            })
+          }
+        }
+        
+        // Sort by date descending (most recent first)
+        matches = hardcodedMatches.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+      } else {
+        // Fetch user's completed matches normally
+        const { data: fetchedMatches } = await supabase
+          .from('matches')
+          .select('player1_id, player2_id, player1_score, player2_score, winner_id, status, completed_at, created_at')
+          .eq('status', 'completed')
+          .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+          .order('created_at', { ascending: false })
+        matches = fetchedMatches
+      }
 
       if (!matches || matches.length === 0) {
         // Preview data so charts are visible during development
@@ -117,14 +196,44 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
       const averageScore =
         userMatches.reduce((sum, m) => sum + m.score, 0) / totalAttempts
 
-      // Fetch ELO history from matches
-      const { data: eloMatches } = await supabase
-        .from('matches')
-        .select('player1_id, player2_id, player1_elo_after, player2_elo_after, completed_at')
-        .eq('status', 'completed')
-        .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
-        .not('completed_at', 'is', null)
-        .order('completed_at', { ascending: true })
+      // Fetch ELO history from matches (or use hardcoded data for ruppy_k)
+      let eloMatches
+      if (isRuppyK) {
+        // For hardcoded matches, calculate ELO progression
+        // Start at 800 and simulate ELO changes
+        let currentElo = 800
+        const opponentId = '00000000-0000-0000-0000-000000000000'
+        eloMatches = matches
+          .slice()
+          .reverse() // Sort ascending by date
+          .map((match) => {
+            const isPlayer1 = match.player1_id === userId
+            // Simulate ELO changes: +16 for win, -16 for loss, 0 for draw (with K=16)
+            if (match.winner_id === userId) {
+              currentElo += 16
+            } else if (match.winner_id === opponentId) {
+              currentElo = Math.max(100, currentElo - 16)
+            }
+            // else draw, no change
+            
+            return {
+              player1_id: match.player1_id,
+              player2_id: match.player2_id,
+              player1_elo_after: isPlayer1 ? currentElo : 800,
+              player2_elo_after: isPlayer1 ? 800 : currentElo,
+              completed_at: match.completed_at,
+            }
+          })
+      } else {
+        const { data: fetchedEloMatches } = await supabase
+          .from('matches')
+          .select('player1_id, player2_id, player1_elo_after, player2_elo_after, completed_at')
+          .eq('status', 'completed')
+          .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+          .not('completed_at', 'is', null)
+          .order('completed_at', { ascending: true })
+        eloMatches = fetchedEloMatches
+      }
 
       // Generate accuracy trend from actual match data with dates
       const accuracyTrend = userMatches
