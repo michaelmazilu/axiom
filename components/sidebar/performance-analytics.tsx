@@ -32,139 +32,16 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
   useEffect(() => {
     async function fetchPerformanceData() {
       const supabase = createClient()
-      
-      // Check if this is ruppy_k user
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('id', userId)
-        .single()
-      
-      const isRuppyK = profile?.display_name === 'ruppy_k'
-      const opponentId = '00000000-0000-0000-0000-000000000000' // Dummy opponent ID
-      
-      let matches
-      if (isRuppyK) {
-        // Hardcoded data for ruppy_k: 5 days, 6 games per day, more wins than losses
-        const now = new Date()
-        const hardcodedMatches = []
-        
-        // Generate 30 matches across 5 days (6 per day)
-        // More wins than losses: 18 wins, 10 losses, 2 draws
-        const results = [
-          ...Array(18).fill('win'),
-          ...Array(10).fill('loss'),
-          ...Array(2).fill('draw')
-        ]
-        
-        // Shuffle results for randomness
-        for (let i = results.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [results[i], results[j]] = [results[j], results[i]]
-        }
-        
-        let resultIndex = 0
-        for (let day = 0; day < 5; day++) {
-          const date = new Date(now)
-          date.setDate(date.getDate() - day)
-          date.setHours(12, 0, 0, 0) // Set to noon
-          
-          for (let game = 0; game < 6; game++) {
-            const gameTime = new Date(date)
-            gameTime.setHours(12 + game, 0, 0, 0) // Spread games throughout the day
-            
-            const result = results[resultIndex++]
-            const isPlayer1 = Math.random() > 0.5
-            
-            let player1Score, player2Score, winnerId
-            if (result === 'win') {
-              player1Score = isPlayer1 ? 15 + Math.floor(Math.random() * 10) : 5 + Math.floor(Math.random() * 8)
-              player2Score = isPlayer1 ? 5 + Math.floor(Math.random() * 8) : 15 + Math.floor(Math.random() * 10)
-              winnerId = userId
-            } else if (result === 'loss') {
-              player1Score = isPlayer1 ? 5 + Math.floor(Math.random() * 8) : 15 + Math.floor(Math.random() * 10)
-              player2Score = isPlayer1 ? 15 + Math.floor(Math.random() * 10) : 5 + Math.floor(Math.random() * 8)
-              winnerId = opponentId
-            } else { // draw
-              const score = 8 + Math.floor(Math.random() * 6)
-              player1Score = isPlayer1 ? score : score
-              player2Score = isPlayer1 ? score : score
-              winnerId = null
-            }
-            
-            hardcodedMatches.push({
-              player1_id: isPlayer1 ? userId : opponentId,
-              player2_id: isPlayer1 ? opponentId : userId,
-              player1_score: player1Score,
-              player2_score: player2Score,
-              winner_id: winnerId,
-              status: 'completed',
-              completed_at: gameTime.toISOString(),
-              created_at: gameTime.toISOString(),
-            })
-          }
-        }
-        
-        // Sort by date descending (most recent first)
-        matches = hardcodedMatches.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-      } else {
-        // Fetch user's completed matches normally
-        const { data: fetchedMatches } = await supabase
-          .from('matches')
-          .select('player1_id, player2_id, player1_score, player2_score, winner_id, status, completed_at, created_at')
-          .eq('status', 'completed')
-          .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
-          .order('created_at', { ascending: false })
-        matches = fetchedMatches
-      }
+
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('player1_id, player2_id, player1_score, player2_score, winner_id, status, completed_at, created_at')
+        .eq('status', 'completed')
+        .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+        .order('created_at', { ascending: false })
 
       if (!matches || matches.length === 0) {
-        // Preview data so charts are visible during development
-        setData({
-          highestAccuracy: 92,
-          totalAttempts: 47,
-          winRate: 64,
-          averageScore: 6,
-          wins: 30,
-          losses: 12,
-          draws: 5,
-          accuracyTrend: [
-            { date: 'Jan 5', value: 45 },
-            { date: 'Jan 8', value: 52 },
-            { date: 'Jan 12', value: 48 },
-            { date: 'Jan 15', value: 61 },
-            { date: 'Jan 19', value: 55 },
-            { date: 'Jan 23', value: 67 },
-            { date: 'Jan 27', value: 63 },
-            { date: 'Feb 1', value: 72 },
-            { date: 'Feb 4', value: 68 },
-            { date: 'Feb 8', value: 75 },
-            { date: 'Feb 11', value: 71 },
-            { date: 'Feb 14', value: 80 },
-            { date: 'Feb 17', value: 78 },
-            { date: 'Feb 20', value: 85 },
-            { date: 'Feb 21', value: 92 },
-          ],
-          eloTrend: [
-            { date: 'Jan 5', value: 800 },
-            { date: 'Jan 8', value: 812 },
-            { date: 'Jan 12', value: 804 },
-            { date: 'Jan 15', value: 828 },
-            { date: 'Jan 19', value: 819 },
-            { date: 'Jan 23', value: 845 },
-            { date: 'Jan 27', value: 838 },
-            { date: 'Feb 1', value: 861 },
-            { date: 'Feb 4', value: 852 },
-            { date: 'Feb 8', value: 876 },
-            { date: 'Feb 11', value: 869 },
-            { date: 'Feb 14', value: 891 },
-            { date: 'Feb 17', value: 883 },
-            { date: 'Feb 20', value: 905 },
-            { date: 'Feb 21', value: 918 },
-          ],
-        })
+        setData(null)
         setLoading(false)
         return
       }
@@ -280,7 +157,7 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
     fetchPerformanceData()
   }, [userId])
 
-  if (loading || !data) {
+  if (loading) {
     if (variant === 'page') {
       return (
         <div className="py-8 text-center text-muted-foreground">
@@ -291,6 +168,21 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
     return (
       <div className="border-t border-sidebar-border px-3 py-4">
         <div className="text-xs text-muted-foreground">Loading performance...</div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    if (variant === 'page') {
+      return (
+        <div className="py-8 text-center text-muted-foreground">
+          No matches played yet. Play a game to see your stats.
+        </div>
+      )
+    }
+    return (
+      <div className="border-t border-sidebar-border px-3 py-4">
+        <div className="text-xs text-muted-foreground">No match data yet</div>
       </div>
     )
   }

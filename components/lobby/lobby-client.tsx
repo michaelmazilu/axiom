@@ -235,23 +235,22 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
   ]
 
   return (
-    <div className="mx-auto max-w-5xl px-12 py-20 lg:py-24">
-      <div className="mb-16 flex items-start justify-between">
-        <div>
-          <h1 className="text-4xl font-medium tracking-tight text-foreground">
-            {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
-          </h1>
-          <p className="mt-3 text-base text-muted-foreground">
-            1v1 probability duels - 120 seconds
-          </p>
-        </div>
+    <div className="mx-auto max-w-3xl px-6 py-20 lg:py-24">
+      <div className="mb-12 text-center">
+        <h1 className="text-4xl font-medium tracking-tight text-foreground">
+          {isGuest ? 'Welcome to Axiom' : `Ready, ${profile.displayName}`}
+        </h1>
+        <p className="mt-3 text-base text-muted-foreground">
+          1v1 probability duels - 120 seconds
+        </p>
         {!isGuest && (
-          <div className="flex items-center gap-4">
+          <div className="mt-4 flex items-center justify-center gap-4">
             <div className="flex items-center gap-1.5">
               <Flame className="h-5 w-5 text-orange-500" />
               <span className="font-mono text-sm font-medium text-foreground">{streak}</span>
             </div>
-            <div className="flex flex-col items-end">
+            <div className="h-4 w-px bg-border" />
+            <div className="flex items-center gap-1.5">
               <span className="text-xs text-muted-foreground">ELO</span>
               <span className="font-mono text-lg font-medium text-foreground">{profile.eloProbability}</span>
             </div>
@@ -260,13 +259,13 @@ export function LobbyClient({ profile, isGuest = false }: LobbyClientProps) {
       </div>
 
       {/* Category Selector */}
-      <div className="mb-10 flex flex-wrap gap-4">
+      <div className="mb-10 flex flex-wrap justify-center gap-3">
         {GAME_MODES.map((mode) => (
           <button
             key={mode}
             onClick={() => setSelectedMode(mode)}
             className={cn(
-              'px-6 py-3 text-base font-medium transition-all border rounded-md',
+              'px-5 py-2.5 text-sm font-medium transition-all border rounded-md',
               selectedMode === mode
                 ? 'bg-foreground text-background border-foreground shadow-sm'
                 : 'bg-background text-muted-foreground border-border hover:border-foreground/50 hover:text-foreground'
