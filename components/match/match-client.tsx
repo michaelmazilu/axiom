@@ -62,20 +62,27 @@ export function MatchClient({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const eloUpdatedRef = useRef(false)
+  const problemsGeneratedRef = useRef(false)
 
+  // Generate problems only once when component mounts - never regenerate during gameplay
   useEffect(() => {
-    const problems = generateProblems(seed, mode, 50)
-    problemsRef.current = problems
-    // Only set the first problem if we don't already have a locked problem
-    // This prevents resetting during the game
-    if (lockedProblemRef.current === null && problems.length > 0) {
-      const firstProblem = problems[0]
-      lockedProblemRef.current = firstProblem
-      lockedIndexRef.current = 0
-      setCurrentProblem(firstProblem)
-      setCurrentProblemIndex(0)
+    // Only generate if we haven't generated yet
+    if (!problemsGeneratedRef.current) {
+      const problems = generateProblems(seed, mode, 50)
+      problemsRef.current = problems
+      problemsGeneratedRef.current = true
+      
+      // Only set the first problem if we don't already have a locked problem
+      if (lockedProblemRef.current === null && problems.length > 0) {
+        const firstProblem = problems[0]
+        lockedProblemRef.current = firstProblem
+        lockedIndexRef.current = 0
+        setCurrentProblem(firstProblem)
+        setCurrentProblemIndex(0)
+      }
     }
-  }, [seed, mode])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount
 
   const finishGame = useCallback(async (finalMyScore: number, finalOpponentScore: number) => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -243,7 +250,8 @@ export function MatchClient({
   useEffect(() => {
     if (phase !== 'playing') return
 
-    // Ensure current problem is set when starting to play - only set once
+    // Ensure current problem is set when starting to play - only set if not already locked
+    // Once a problem is locked, it never changes during gameplay
     if (lockedProblemRef.current === null && problemsRef.current.length > 0) {
       const firstProblem = problemsRef.current[0]
       lockedProblemRef.current = firstProblem
