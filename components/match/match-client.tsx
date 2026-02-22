@@ -48,12 +48,11 @@ export function MatchClient({
   const [timeRemaining, setTimeRemaining] = useState(MATCH_DURATION)
   const [myScore, setMyScore] = useState(0)
   const [opponentScore, setOpponentScore] = useState(0)
-  const [currentProblemIndex, setCurrentProblemIndex] = useState(0)
-  const [currentProblem, setCurrentProblem] = useState<MathProblem | null>(null)
   const [answer, setAnswer] = useState('')
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null)
   const [result, setResult] = useState<MatchResult | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [problemKey, setProblemKey] = useState(0) // Force re-render when problem changes
 
   const problemsRef = useRef<MathProblem[]>([])
   const lockedProblemRef = useRef<MathProblem | null>(null)
@@ -63,6 +62,7 @@ export function MatchClient({
   const inputRef = useRef<HTMLInputElement>(null)
   const eloUpdatedRef = useRef(false)
   const problemsGeneratedRef = useRef(false)
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Generate problems only once when component mounts - never regenerate during gameplay
   useEffect(() => {
@@ -77,8 +77,7 @@ export function MatchClient({
         const firstProblem = problems[0]
         lockedProblemRef.current = firstProblem
         lockedIndexRef.current = 0
-        setCurrentProblem(firstProblem)
-        setCurrentProblemIndex(0)
+        setProblemKey(0) // Force initial render
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -256,8 +255,7 @@ export function MatchClient({
       const firstProblem = problemsRef.current[0]
       lockedProblemRef.current = firstProblem
       lockedIndexRef.current = 0
-      setCurrentProblem(firstProblem)
-      setCurrentProblemIndex(0)
+      setProblemKey(0) // Force render with first problem
     }
 
     inputRef.current?.focus()
@@ -274,6 +272,10 @@ export function MatchClient({
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current)
+        transitionTimeoutRef.current = null
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
@@ -317,22 +319,26 @@ export function MatchClient({
       setAnswer('')
       setIsTransitioning(true)
       
-      setTimeout(() => {
+      // Cancel any pending transition
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current)
+      }
+      
+      transitionTimeoutRef.current = setTimeout(() => {
         const nextIndex = lockedIndexRef.current + 1
         const nextProblem = problemsRef.current[nextIndex]
         
         if (nextProblem) {
-          // Lock the next problem immediately
+          // Lock the next problem immediately - update refs and state atomically
           lockedProblemRef.current = nextProblem
           lockedIndexRef.current = nextIndex
-          setCurrentProblem(nextProblem)
-          setCurrentProblemIndex(nextIndex)
           setFeedback(null) // Clear feedback for new problem
-        } else {
-          setCurrentProblem(null)
+          // Use a unique key to force re-render with the new problem
+          setProblemKey(nextIndex)
         }
         
         setIsTransitioning(false)
+        transitionTimeoutRef.current = null
         setTimeout(() => inputRef.current?.focus(), 50)
       }, 200)
     } else {
@@ -354,23 +360,27 @@ export function MatchClient({
       setAnswer('')
       setIsTransitioning(true)
       
+      // Cancel any pending transition
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current)
+      }
+      
       // Flash red briefly, then transition
-      setTimeout(() => {
+      transitionTimeoutRef.current = setTimeout(() => {
         const nextIndex = lockedIndexRef.current + 1
         const nextProblem = problemsRef.current[nextIndex]
         
         if (nextProblem) {
-          // Lock the next problem immediately
+          // Lock the next problem immediately - update refs and state atomically
           lockedProblemRef.current = nextProblem
           lockedIndexRef.current = nextIndex
-          setCurrentProblem(nextProblem)
-          setCurrentProblemIndex(nextIndex)
           setFeedback(null) // Clear feedback for new problem
-        } else {
-          setCurrentProblem(null)
+          // Use a unique key to force re-render with the new problem
+          setProblemKey(nextIndex)
         }
         
         setIsTransitioning(false)
+        transitionTimeoutRef.current = null
         setTimeout(() => inputRef.current?.focus(), 50)
       }, 250) // Brief delay for wrong answer to see the red flash
     }
@@ -451,7 +461,7 @@ export function MatchClient({
 
       <div className="flex flex-1 flex-col items-center justify-center">
         {lockedProblemRef.current && (
-          <div className="w-full flex justify-center">
+          <div className="w-full flex justify-center" key={problemKey}>
             <ProblemDisplay
               problem={lockedProblemRef.current}
               index={lockedIndexRef.current}
