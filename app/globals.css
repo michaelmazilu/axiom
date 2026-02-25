@@ -146,3 +146,86 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes victory-confetti-fall {
+  0% {
+    transform: translateY(-16px) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(240px) rotate(320deg);
+    opacity: 0;
+  }
+}
+
+@keyframes victory-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-8px);
+  }
+  55% {
+    transform: translateY(2px);
+  }
+  75% {
+    transform: translateY(-3px);
+  }
+}
+
+.victory-glow {
+  position: absolute;
+  inset: 16% 10% auto;
+  height: 170px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--color-scholar-gold) 45%, transparent) 0%,
+    transparent 72%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.victory-confetti-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.victory-confetti {
+  position: absolute;
+  top: 0;
+  width: 7px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--color-scholar-vermillion);
+  animation-name: victory-confetti-fall;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+.victory-confetti:nth-child(3n) {
+  background: var(--color-scholar-gold);
+}
+
+.victory-confetti:nth-child(2n) {
+  width: 6px;
+  height: 10px;
+}
+
+.victory-bounce {
+  animation: victory-bounce 650ms ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .victory-confetti,
+  .victory-bounce {
+    animation: none;
+  }
+}

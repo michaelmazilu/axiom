@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import type { GameMode } from '@/lib/game/math-generator'
 import { MODE_LABELS } from '@/lib/game/types'
@@ -16,7 +17,27 @@ export function BotMatchResults({ myScore, botScore, mode }: BotMatchResultsProp
   const isDraw = myScore === botScore
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-6 py-12">
+    <div className="relative mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center overflow-hidden px-6 py-12">
+      {isWinner && (
+        <>
+          <div className="victory-glow" aria-hidden="true" />
+          <div className="victory-confetti-layer" aria-hidden="true">
+            {Array.from({ length: 14 }).map((_, i) => (
+              <span
+                key={i}
+                className="victory-confetti"
+                style={
+                  {
+                    left: `${6 + i * 6.5}%`,
+                    animationDelay: `${(i % 7) * 0.15}s`,
+                    animationDuration: `${2.4 + (i % 5) * 0.25}s`,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        </>
+      )}
       <div className="mb-2 text-sm uppercase tracking-widest text-muted-foreground">
         Practice — {MODE_LABELS[mode]}
       </div>
@@ -26,7 +47,7 @@ export function BotMatchResults({ myScore, botScore, mode }: BotMatchResultsProp
           isDraw
             ? 'text-muted-foreground'
             : isWinner
-              ? 'text-scholar-success'
+              ? 'text-scholar-success victory-bounce'
               : 'text-scholar-vermillion'
         )}
       >

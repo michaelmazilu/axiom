@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import type { MatchResult } from '@/lib/game/types'
 import { MODE_LABELS } from '@/lib/game/types'
@@ -20,7 +21,27 @@ export function MatchResults({ result, currentUserId }: MatchResultsProps) {
     result.player1.id === currentUserId ? result.player2 : result.player1
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-6 py-12">
+    <div className="relative mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center overflow-hidden px-6 py-12">
+      {isWinner && (
+        <>
+          <div className="victory-glow" aria-hidden="true" />
+          <div className="victory-confetti-layer" aria-hidden="true">
+            {Array.from({ length: 14 }).map((_, i) => (
+              <span
+                key={i}
+                className="victory-confetti"
+                style={
+                  {
+                    left: `${6 + i * 6.5}%`,
+                    animationDelay: `${(i % 7) * 0.15}s`,
+                    animationDuration: `${2.4 + (i % 5) * 0.25}s`,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        </>
+      )}
       {/* Outcome */}
       <div className="mb-2 text-sm uppercase tracking-widest text-muted-foreground">
         {MODE_LABELS[result.mode]}
@@ -31,7 +52,7 @@ export function MatchResults({ result, currentUserId }: MatchResultsProps) {
           isDraw
             ? 'text-scholar-stone'
             : isWinner
-              ? 'text-scholar-success'
+              ? 'text-scholar-success victory-bounce'
               : 'text-scholar-vermillion'
         )}
       >
