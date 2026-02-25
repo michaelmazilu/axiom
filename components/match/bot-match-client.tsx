@@ -11,6 +11,7 @@ import { ScoreBar } from './score-bar'
 import { BotMatchResults } from './bot-match-results'
 
 type MatchPhase = 'countdown' | 'playing' | 'finished'
+const BOT_DIFFICULTY_MULTIPLIER = 2
 
 interface BotMatchClientProps {
   mode: GameMode
@@ -177,7 +178,8 @@ export function BotMatchClient({ mode, userElo = 800 }: BotMatchClientProps) {
     // Bot speed scales with user ELO - higher ELO users get faster bots
     const eloMultiplier = userElo <= 800 ? 1.2 : userElo <= 1000 ? 1.0 : userElo <= 1200 ? 0.85 : 0.7
     const jitter = (Math.random() - 0.5) * 2000
-    const delay = baseDuration * eloMultiplier + jitter
+    // Higher multiplier means the bot answers faster (2x harder => ~half the delay).
+    const delay = (baseDuration * eloMultiplier + jitter) / BOT_DIFFICULTY_MULTIPLIER
 
     botTimerRef.current = setTimeout(() => {
       if (Math.random() < adjustedAccuracy) {

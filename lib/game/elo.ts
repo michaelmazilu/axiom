@@ -6,7 +6,7 @@
  * 
  * The system is self-balancing: equal skill → equal ratings → equal expected outcomes.
  */
-const K = 16
+const K = 18
 
 /**
  * Calculate the expected score (win probability) for player A against player B.
@@ -46,7 +46,7 @@ export interface EloResult {
  * 
  * For equal ratings:
  * - Expected score = 0.5 (50/50 chance)
- * - Winner gains 8 points, loser loses 8 points (half the maximum ±16)
+ * - Winner gains 9 points, loser loses 9 points (half the maximum ±18)
  * - Draw results in no change (0 points)
  * 
  * @param ratingA - Current rating of player A
@@ -64,7 +64,7 @@ export function calculateElo(
   const scoreB = 1 - scoreA
 
   // Update ratings based on actual vs expected performance
-  // K-factor (16) controls how much ratings change per match
+  // K-factor (18) controls how much ratings change per match
   const deltaA = Math.round(K * (scoreA - expectedA))
   const deltaB = Math.round(K * (scoreB - expectedB))
 

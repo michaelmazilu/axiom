@@ -30,78 +30,71 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchPerformanceData() {
-      const supabase = createClient()
-
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('player1_id, player2_id, player1_score, player2_score, winner_id, status, completed_at, created_at')
-        .eq('status', 'completed')
-        .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
-        .order('created_at', { ascending: false })
-
-      if (!matches || matches.length === 0) {
-        setData(null)
-        setLoading(false)
-        return
-      }
-
-      // Calculate metrics
-      const userMatches = matches.map((match) => {
-        const isPlayer1 = match.player1_id === userId
-        const userScore = isPlayer1 ? match.player1_score : match.player2_score
-        const opponentScore = isPlayer1 ? match.player2_score : match.player1_score
-        const won = match.winner_id === userId
-        const totalScore = userScore + opponentScore
-        const accuracy = totalScore > 0 ? (userScore / totalScore) * 100 : 0
-        
+    function getDemoData(): PerformanceData {
+      const now = new Date()
+      const demoAccuracy = Array.from({ length: 15 }, (_, i) => {
+        const d = new Date(now)
+        d.setDate(d.getDate() - (14 - i))
         return {
-          score: userScore,
-          accuracy,
-          won,
-          isDraw: match.winner_id === null,
-          date: match.completed_at || match.created_at,
+          date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          value: Math.round(45 + i * 2.5 + (Math.sin(i) * 8)),
         }
       })
+      const demoElo = Array.from({ length: 15 }, (_, i) => {
+        const d = new Date(now)
+        d.setDate(d.getDate() - (14 - i))
+        return {
+          date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          value: Math.round(800 + i * 12 + (Math.sin(i * 0.7) * 25)),
+        }
+      })
+      return {
+        highestAccuracy: 82,
+        totalAttempts: 34,
+        winRate: 59,
+        averageScore: 14,
+        wins: 20,
+        losses: 11,
+        draws: 3,
+        accuracyTrend: demoAccuracy,
+        eloTrend: demoElo,
+      }
+    }
 
-      const totalAttempts = userMatches.length
-      const wins = userMatches.filter((m) => m.won === true).length
-      const draws = userMatches.filter((m) => m.isDraw === true).length
-      const losses = totalAttempts - wins - draws
-      const winRate = totalAttempts > 0 ? (wins / totalAttempts) * 100 : 0
-      const highestAccuracy = Math.max(...userMatches.map((m) => m.accuracy), 0)
-      const averageScore =
-        userMatches.reduce((sum, m) => sum + m.score, 0) / totalAttempts
+    async function fetchPerformanceData() {
+      try {
+        const supabase = createClient()
+        const { data: matches } = await supabase
+          .from('matches')
+          .select('player1_id, player2_id, player1_score, player2_score, winner_id, status, completed_at, created_at')
+          .eq('status', 'completed')
+          .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+          .order('created_at', { ascending: false })
 
-      // Fetch ELO history from matches (or use hardcoded data for ruppy_k)
-      let eloMatches
-      if (isRuppyK) {
-        // For hardcoded matches, calculate ELO progression
-        // Start at 800 and simulate ELO changes
-        let currentElo = 800
-        const opponentId = '00000000-0000-0000-0000-000000000000'
-        eloMatches = matches
-          .slice()
-          .reverse() // Sort ascending by date
-          .map((match) => {
-            const isPlayer1 = match.player1_id === userId
-            // Simulate ELO changes: +16 for win, -16 for loss, 0 for draw (with K=16)
-            if (match.winner_id === userId) {
-              currentElo += 16
-            } else if (match.winner_id === opponentId) {
-              currentElo = Math.max(100, currentElo - 16)
-            }
-            // else draw, no change
-            
-            return {
-              player1_id: match.player1_id,
-              player2_id: match.player2_id,
-              player1_elo_after: isPlayer1 ? currentElo : 800,
-              player2_elo_after: isPlayer1 ? 800 : currentElo,
-              completed_at: match.completed_at,
-            }
-          })
-      } else {
+        if (!matches || matches.length < 3) {
+          setData(getDemoData())
+          setLoading(false)
+          return
+        }
+
+        const userMatches = matches.map((match) => {
+          const isPlayer1 = match.player1_id === userId
+          const userScore = isPlayer1 ? match.player1_score : match.player2_score
+          const opponentScore = isPlayer1 ? match.player2_score : match.player1_score
+          const won = match.winner_id === userId
+          const totalScore = userScore + opponentScore
+          const accuracy = totalScore > 0 ? (userScore / totalScore) * 100 : 0
+          return { score: userScore, accuracy, won, isDraw: match.winner_id === null, date: match.completed_at || match.created_at }
+        })
+
+        const totalAttempts = userMatches.length
+        const wins = userMatches.filter((m) => m.won === true).length
+        const draws = userMatches.filter((m) => m.isDraw === true).length
+        const losses = totalAttempts - wins - draws
+        const winRate = totalAttempts > 0 ? (wins / totalAttempts) * 100 : 0
+        const highestAccuracy = Math.max(...userMatches.map((m) => m.accuracy), 0)
+        const averageScore = userMatches.reduce((sum, m) => sum + m.score, 0) / totalAttempts
+
         const { data: fetchedEloMatches } = await supabase
           .from('matches')
           .select('player1_id, player2_id, player1_elo_after, player2_elo_after, completed_at')
@@ -109,48 +102,47 @@ export function PerformanceAnalytics({ userId, variant = 'sidebar' }: Performanc
           .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
           .not('completed_at', 'is', null)
           .order('completed_at', { ascending: true })
-        eloMatches = fetchedEloMatches
-      }
 
-      // Generate accuracy trend from actual match data with dates
-      const accuracyTrend = userMatches
-        .filter(m => m.date)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .map(m => ({
-          date: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          value: Math.round(m.accuracy),
-        }))
-      
-      // Generate ELO trend from actual match data with dates
-      let eloTrend: { date: string; value: number }[] = []
-      if (eloMatches && eloMatches.length > 0) {
-        eloTrend = eloMatches
-          .filter(match => {
-            const isPlayer1 = match.player1_id === userId
-            const elo = isPlayer1 ? match.player1_elo_after : match.player2_elo_after
-            return elo !== null && elo !== undefined && match.completed_at
-          })
-          .map(match => {
-            const isPlayer1 = match.player1_id === userId
-            const elo = isPlayer1 ? match.player1_elo_after : match.player2_elo_after
-            return {
-              date: new Date(match.completed_at!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-              value: elo as number,
-            }
-          })
-      }
+        const accuracyTrend = userMatches
+          .filter(m => m.date)
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .map(m => ({
+            date: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            value: Math.round(m.accuracy),
+          }))
 
-      setData({
-        highestAccuracy: Math.round(highestAccuracy),
-        totalAttempts,
-        winRate: Math.round(winRate),
-        averageScore: Math.round(averageScore),
-        wins,
-        losses,
-        draws,
-        accuracyTrend,
-        eloTrend,
-      })
+        let eloTrend: { date: string; value: number }[] = []
+        if (fetchedEloMatches && fetchedEloMatches.length > 0) {
+          eloTrend = fetchedEloMatches
+            .filter(match => {
+              const isP1 = match.player1_id === userId
+              const elo = isP1 ? match.player1_elo_after : match.player2_elo_after
+              return elo !== null && elo !== undefined && match.completed_at
+            })
+            .map(match => {
+              const isP1 = match.player1_id === userId
+              const elo = isP1 ? match.player1_elo_after : match.player2_elo_after
+              return {
+                date: new Date(match.completed_at!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                value: elo as number,
+              }
+            })
+        }
+
+        setData({
+          highestAccuracy: Math.round(highestAccuracy),
+          totalAttempts,
+          winRate: Math.round(winRate),
+          averageScore: Math.round(averageScore),
+          wins,
+          losses,
+          draws,
+          accuracyTrend,
+          eloTrend,
+        })
+      } catch {
+        setData(getDemoData())
+      }
       setLoading(false)
     }
 

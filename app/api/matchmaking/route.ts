@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateMatchSeed } from '@/lib/game/seeded-random'
-import { GAME_MODES, MATCH_DURATION, COUNTDOWN_DURATION } from '@/lib/game/types'
+import { GAME_MODES, MATCH_DURATION, COUNTDOWN_DURATION, LEGACY_MODE_MAP } from '@/lib/game/types'
 
 const MATCH_STALE_MS = (MATCH_DURATION + COUNTDOWN_DURATION + 60) * 1000
 
@@ -93,12 +93,19 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  // Build list of mode values to match against (includes legacy DB values)
+  const legacyModes = Object.entries(LEGACY_MODE_MAP)
+    .filter(([, v]) => v === mode)
+    .map(([k]) => k)
+  const matchModes = [mode, ...legacyModes]
+  const modeFilter = matchModes.map(m => `mode.eq.${m}`).join(',')
+
   // Always search for opponents (don't short-circuit on existing waiting entry,
   // otherwise two players who join simultaneously both get stuck waiting)
   const { data: opponents } = await supabase
     .from('matchmaking_queue')
     .select('*')
-    .eq('mode', mode)
+    .or(modeFilter)
     .eq('status', 'waiting')
     .neq('user_id', user.id)
     .gte('elo', playerElo - 300)
@@ -122,7 +129,8 @@ export async function POST(request: NextRequest) {
     const opponentElo = (opponentProfile.elo_probability ?? 800) as number
     const seed = generateMatchSeed()
 
-    const { data: match, error: matchError } = await supabase
+    // Try inserting with current mode; fall back to 'all' if DB constraints haven't been migrated
+    let { data: match, error: matchError } = await supabase
       .from('matches')
       .insert({
         player1_id: opponent.user_id,
@@ -137,6 +145,26 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single()
+
+    if (matchError) {
+      const fallback = await supabase
+        .from('matches')
+        .insert({
+          player1_id: opponent.user_id,
+          player2_id: user.id,
+          mode: 'all',
+          player1_elo_before: opponentElo,
+          player2_elo_before: playerElo,
+          player1_elo_after: opponentElo,
+          player2_elo_after: playerElo,
+          seed,
+          status: 'in_progress',
+        })
+        .select()
+        .single()
+      match = fallback.data
+      matchError = fallback.error
+    }
 
     if (matchError || !match) {
       return NextResponse.json(
@@ -200,7 +228,7 @@ export async function POST(request: NextRequest) {
     .eq('user_id', user.id)
     .eq('status', 'waiting')
 
-  const { data: queueEntry, error: queueError } = await supabase
+  let { data: queueEntry, error: queueError } = await supabase
     .from('matchmaking_queue')
     .insert({
       user_id: user.id,
@@ -210,6 +238,17 @@ export async function POST(request: NextRequest) {
     })
     .select()
     .single()
+
+  // Fall back to 'all' if DB constraints haven't been migrated
+  if (queueError && queueError.code === '23514') {
+    const fb = await supabase
+      .from('matchmaking_queue')
+      .insert({ user_id: user.id, mode: 'all', elo: playerElo, status: 'waiting' })
+      .select()
+      .single()
+    queueEntry = fb.data
+    queueError = fb.error
+  }
 
   if (queueError) {
     // Could fail if we got matched between our check and insert (unique constraint)

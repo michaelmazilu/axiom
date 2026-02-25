@@ -29,7 +29,12 @@ export function generateProblems(
     attempts++
     const progressDifficulty = Math.min(5, Math.floor(problems.length / 6) + 1)
     const randomVariance = Math.floor(rng() * 2) - 1
-    const difficulty = Math.max(1, Math.min(5, progressDifficulty + randomVariance))
+    const baseDifficulty = Math.max(1, Math.min(5, progressDifficulty + randomVariance))
+    // Make non-stat modes slightly harder overall while keeping deterministic generation.
+    const difficulty =
+      mode === 'statistics'
+        ? baseDifficulty
+        : Math.max(2, Math.min(5, baseDifficulty + 1))
 
     let problem: MathProblem
 
@@ -894,8 +899,8 @@ function genCalculus(rng: () => number, difficulty: number): MathProblem {
   if (difficulty <= 1) {
     return pick(rng, [
       () => genPowerRuleSimple(rng),
-      () => genConstantDeriv(rng),
-      () => genLinearDeriv(rng),
+      () => genPowerRuleCoeff(rng),
+      () => genQuadraticDeriv(rng),
     ])()
   }
   if (difficulty <= 2) {
